@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="雅式吐司計算">
+<title>雅式吐司計算</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #eeede9;
+    --text: #1a1a18;
+    --text2: #666660;
+    --text3: #999994;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --success: #2d7a3a;
+    --danger-bg: #fdecea;
+    --danger: #b93030;
+    --danger-border: rgba(185,48,48,0.3);
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg2: #272724;
+      --bg3: #303030;
+      --text: #f0efe8;
+      --text2: #9a9990;
+      --text3: #666660;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+      --success: #5cbf6e;
+      --danger-bg: #3a1a1a;
+      --danger: #e07070;
+      --danger-border: rgba(224,112,112,0.3);
+    }
+  }
+
+  html, body { height: 100%; background: var(--bg2); font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; color: var(--text); }
+
+  .app { max-width: 500px; margin: 0 auto; padding: 0 0 40px; min-height: 100%; background: var(--bg2); }
+
+  /* Header */
+  .header { padding: 20px 16px 12px; background: var(--bg); border-bottom: 0.5px solid var(--border); }
+  .header h1 { font-size: 28px; font-weight: 600; color: var(--text); letter-spacing: -0.5px; }
+  .header .date { font-size: 15px; color: var(--text2); margin-top: 2px; }
+
+  /* Tabs */
+  .tabs { display: flex; background: var(--bg); border-bottom: 0.5px solid var(--border); }
+  .tab { flex: 1; padding: 14px 6px; font-size: 16px; font-weight: 500; color: var(--text2); text-align: center; cursor: pointer; border-bottom: 2.5px solid transparent; transition: color 0.15s, border-color 0.15s; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+  /* Content */
+  .tab-content { display: none; padding: 14px 12px; }
+  .tab-content.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--bg); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 16px; margin-bottom: 12px; }
+  .card-yellow { background: #fff8c5; border-radius: var(--radius-lg); border: 0.5px solid #e6c800; padding: 16px; margin-bottom: 12px; }
+  .card-yellow .card-title { font-size: 19px; font-weight: 600; color: #7a6000; margin-bottom: 14px; }
+  .card-yellow .field-label { font-size: 19px; color: #5a4500; flex: 1; }
+  @media (prefers-color-scheme: dark) {
+    .card-yellow { background: #3a3000; border-color: #a08800; }
+    .card-yellow .card-title { color: #ffd84d; }
+    .card-yellow .field-label { color: #f0c830; }
+  }
+  .card-title { font-size: 19px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+
+  /* Field rows */
+  .field-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .field-row:last-child { margin-bottom: 0; }
+  .field-label { font-size: 19px; color: var(--text); flex: 1; }
+
+  /* Quantity control */
+  .qty-ctrl { display: flex; align-items: center; gap: 8px; }
+  .qty-btn {
+    width: 46px; height: 46px; font-size: 26px; line-height: 1;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg2); color: var(--text);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-weight: 400; -webkit-tap-highlight-color: transparent;
+    user-select: none; transition: background 0.1s;
+  }
+  .qty-btn:active { background: var(--bg3); }
+  .qty-input {
+    width: 72px; height: 46px; font-size: 22px; font-weight: 600;
+    text-align: center; border: 0.5px solid var(--border2);
+    border-radius: var(--radius); background: var(--bg); color: var(--text);
+    /* Key: numeric keyboard on mobile */
+    inputmode: numeric;
+    -webkit-appearance: none; appearance: none;
+  }
+  .qty-input:focus { outline: none; border-color: var(--text); }
+  /* Hide number spinners */
+  .qty-input::-webkit-outer-spin-button,
+  .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty-input[type=number] { -moz-appearance: textfield; }
+
+  /* Summary */
+  .summary-card { background: var(--bg); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 16px; margin-bottom: 12px; }
+  .summary-label-row { font-size: 14px; color: var(--text2); margin-bottom: 10px; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase; }
+  .summary-row { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .summary-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .summary-row-label { font-size: 18px; color: var(--text); }
+  .summary-row-value { font-size: 24px; font-weight: 600; color: var(--text); }
+  .result-value { font-size: 30px; font-weight: 700; color: var(--success); }
+
+  /* Admin */
+  .admin-input-row { display: flex; gap: 8px; }
+  .admin-input {
+    flex: 1; height: 50px; font-size: 18px; padding: 0 14px;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg); color: var(--text);
+  }
+  .admin-input:focus { outline: none; border-color: var(--text); }
+  .btn-add {
+    height: 50px; padding: 0 18px; font-size: 17px; font-weight: 500;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg2); color: var(--text); cursor: pointer;
+    -webkit-tap-highlight-color: transparent; white-space: nowrap;
+  }
+  .btn-add:active { background: var(--bg3); }
+  .vendor-list-item { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-bottom: 0.5px solid var(--border); }
+  .vendor-list-item:last-child { border-bottom: none; }
+  .vendor-list-name { font-size: 20px; color: var(--text); }
+  .btn-del {
+    height: 38px; padding: 0 14px; font-size: 15px; font-weight: 500;
+    border: 0.5px solid var(--danger-border); border-radius: var(--radius);
+    background: var(--danger-bg); color: var(--danger); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-del:active { opacity: 0.7; }
+
+  /* Misc */
+  .no-vendor { font-size: 17px; color: var(--text2); text-align: center; padding: 24px 0; }
+  .reset-note { font-size: 14px; color: var(--text3); text-align: center; margin-top: 6px; padding: 0 8px; }
+  .vendor-name-label { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 10px 0; }
+  .error-msg { font-size: 14px; color: var(--danger); margin-top: 6px; display: none; }
+  .error-msg.show { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>🍞 雅式吐司計算</h1>
+    <div class="date" id="date-display"></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('main')">輸入訂單</div>
+    <div class="tab" onclick="switchTab('admin')">管理廠商</div>
+  </div>
+
+  <!-- 輸入訂單 -->
+  <div id="tab-main" class="tab-content active">
+    <div id="vendor-inputs"></div>
+
+    <div class="card-yellow">
+      <div class="card-title">當天剩餘庫存</div>
+      <div class="field-row">
+        <div class="field-label">白吐司剩餘</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="adj('remain_white',-1)">－</button>
+          <input class="qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" id="remain_white" value="0" oninput="saveData()">
+          <button class="qty-btn" onclick="adj('remain_white',1)">＋</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-label">全麥吐司剩餘</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="adj('remain_whole',-1)">－</button>
+          <input class="qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" id="remain_whole" value="0" oninput="saveData()">
+          <button class="qty-btn" onclick="adj('remain_whole',1)">＋</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-label-row">隔天需製作數量</div>
+      <div class="summary-row">
+        <div class="summary-row-label">白吐司<br><span style="font-size:13px;color:var(--text3)">廠商 + 店面15條，扣剩餘</span></div>
+        <div style="text-align:right">
+          <div class="result-value" id="need-white-guan">0 貫</div>
+          <div style="font-size:15px;color:var(--text2)" id="need-white-tiao">（0 條）</div>
+        </div>
+      </div>
+      <div class="summary-row">
+        <div class="summary-row-label">全麥吐司<br><span style="font-size:13px;color:var(--text3)">廠商訂購，扣剩餘</span></div>
+        <div style="text-align:right">
+          <div class="result-value" id="need-whole-guan">0 貫</div>
+          <div style="font-size:15px;color:var(--text2)" id="need-whole-tiao">（0 條）</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reset-note" id="reset-note"></div>
+  </div>
+
+  <!-- 管理廠商 -->
+  <div id="tab-admin" class="tab-content">
+    <div class="card">
+      <div class="card-title">新增廠商</div>
+      <div class="admin-input-row">
+        <input class="admin-input" type="text" id="new-vendor-name" placeholder="輸入廠商名稱" onkeydown="if(event.key==='Enter')addVendor()">
+        <button class="btn-add" onclick="addVendor()">新增</button>
+      </div>
+      <div class="error-msg" id="vendor-error">請輸入廠商名稱，且不能重複</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">廠商列表</div>
+      <div id="vendor-mgmt-list"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB63VmNeta7bMhqBkm69liZ7Xf0ks0_HFM",
+  authDomain: "yash-toast.firebaseapp.com",
+  databaseURL: "https://yash-toast-default-rtdb.firebaseio.com",
+  projectId: "yash-toast",
+  storageBucket: "yash-toast.firebasestorage.app",
+  messagingSenderId: "356741943466",
+  appId: "1:356741943466:web:ec5e75cafb74dacb7a00d3"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const TZ = 'Asia/Taipei';
+
+function getTaipeiDateStr() {
+  return new Date().toLocaleDateString('zh-TW', {
+    timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit'
+  });
+}
+
+function getTaipeiHour() {
+  return parseInt(new Date().toLocaleString('zh-TW', {
+    timeZone: TZ, hour: '2-digit', hour12: false
+  }));
+}
+
+function getResetDate() {
+  const d = new Date();
+  const hour = getTaipeiHour();
+  if (hour >= 12) {
+    return getTaipeiDateStr();
+  } else {
+    const yesterday = new Date(d);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toLocaleDateString('zh-TW', {
+      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+  }
+}
+
+function getDefaultState(vendors) {
+  const orders = {};
+  vendors.forEach(v => { orders[v] = { white: 0, whole: 0 }; });
+  return { orders, remain_white: 0, remain_whole: 0, resetDate: getResetDate() };
+}
+
+// Firebase key 安全轉換（不允許 . # $ [ ] /）
+function toKey(str) {
+  return str.replace(/[.#$[\]/]/g, '_');
+}
+
+let vendors = [];
+let state = {};
+let isSyncing = false;
+
+async function saveToFirebase() {
+  if (isSyncing) return;
+  const safeState = {
+    remain_white: state.remain_white || 0,
+    remain_whole: state.remain_whole || 0,
+    resetDate: state.resetDate,
+    orders: {}
+  };
+  vendors.forEach(v => {
+    safeState.orders[toKey(v)] = state.orders[v] || { white: 0, whole: 0 };
+  });
+  await set(ref(db, 'data'), safeState);
+  await set(ref(db, 'vendors'), vendors);
+}
+
+function applyState(data) {
+  if (!data) return;
+  state.remain_white = data.remain_white || 0;
+  state.remain_whole = data.remain_whole || 0;
+  state.resetDate = data.resetDate || getResetDate();
+  if (data.orders) {
+    vendors.forEach(v => {
+      const k = toKey(v);
+      state.orders[v] = data.orders[k] || { white: 0, whole: 0 };
+    });
+  }
+  const rw = document.getElementById('remain_white');
+  const ro = document.getElementById('remain_whole');
+  if (rw) rw.value = state.remain_white;
+  if (ro) ro.value = state.remain_whole;
+  vendors.forEach(v => {
+    const vid = v.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
+    const ew = document.getElementById(`v_${vid}_white`);
+    const eo = document.getElementById(`v_${vid}_whole`);
+    if (ew) ew.value = state.orders[v]?.white || 0;
+    if (eo) eo.value = state.orders[v]?.whole || 0;
+  });
+  updateResult();
+}
+
+async function init() {
+  document.getElementById('date-display').textContent = '台北時間 ' + getTaipeiDateStr();
+
+  // 取得廠商列表
+  const vSnap = await get(ref(db, 'vendors'));
+  if (vSnap.exists()) {
+    vendors = vSnap.val();
+  } else {
+    vendors = ['廠商A', '廠商B'];
+    await set(ref(db, 'vendors'), vendors);
+  }
+
+  state = getDefaultState(vendors);
+
+  // 取得資料並檢查歸零
+  const dSnap = await get(ref(db, 'data'));
+  const currentResetDate = getResetDate();
+  if (dSnap.exists()) {
+    const data = dSnap.val();
+    if (data.resetDate !== currentResetDate) {
+      // 歸零
+      state = getDefaultState(vendors);
+      state.resetDate = currentResetDate;
+      await saveToFirebase();
+    } else {
+      applyState(data);
+    }
+  } else {
+    await saveToFirebase();
+  }
+
+  renderAll();
+
+  const hour = getTaipeiHour();
+  const note = hour >= 12
+    ? '資料將於明天中午 12:00 自動歸零'
+    : '資料將於今天中午 12:00 自動歸零';
+  document.getElementById('reset-note').textContent = note;
+
+  // 即時監聽 Firebase 資料變動（其他手機更新時同步）
+  onValue(ref(db, 'data'), (snap) => {
+    if (!snap.exists()) return;
+    isSyncing = true;
+    applyState(snap.val());
+    isSyncing = false;
+  });
+
+  onValue(ref(db, 'vendors'), (snap) => {
+    if (!snap.exists()) return;
+    const newVendors = snap.val();
+    if (JSON.stringify(newVendors) !== JSON.stringify(vendors)) {
+      vendors = newVendors;
+      vendors.forEach(v => {
+        if (!state.orders[v]) state.orders[v] = { white: 0, whole: 0 };
+      });
+      renderVendorInputs();
+      renderVendorMgmt();
+    }
+  });
+}
+
+function renderAll() {
+  renderVendorInputs();
+  renderVendorMgmt();
+  updateResult();
+}
+
+function renderVendorInputs() {
+  const el = document.getElementById('vendor-inputs');
+  if (vendors.length === 0) {
+    el.innerHTML = '<div class="no-vendor">尚未設定廠商，請至「管理廠商」新增</div>';
+    return;
+  }
+  el.innerHTML = vendors.map(v => {
+    const w = state.orders[v]?.white || 0;
+    const o = state.orders[v]?.whole || 0;
+    const vid = v.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
+    return `
+    <div class="card">
+      <div class="vendor-name-label">${v}</div>
+      <div class="field-row">
+        <div class="field-label">白吐司</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="adjVendor('${v}','white',-1)">－</button>
+          <input class="qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0"
+            id="v_${vid}_white" value="${w}"
+            oninput="setVendor('${v}','white',this.value)">
+          <button class="qty-btn" onclick="adjVendor('${v}','white',1)">＋</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-label">全麥吐司</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="adjVendor('${v}','whole',-1)">－</button>
+          <input class="qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0"
+            id="v_${vid}_whole" value="${o}"
+            oninput="setVendor('${v}','whole',this.value)">
+          <button class="qty-btn" onclick="adjVendor('${v}','whole',1)">＋</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const rw = document.getElementById('remain_white');
+  const ro = document.getElementById('remain_whole');
+  if (rw) rw.value = state.remain_white || 0;
+  if (ro) ro.value = state.remain_whole || 0;
+}
+
+function renderVendorMgmt() {
+  const el = document.getElementById('vendor-mgmt-list');
+  if (vendors.length === 0) {
+    el.innerHTML = '<div class="no-vendor">尚無廠商</div>';
+    return;
+  }
+  el.innerHTML = vendors.map(v => `
+    <div class="vendor-list-item">
+      <span class="vendor-list-name">${v}</span>
+      <button class="btn-del" onclick="removeVendor('${v}')">移除</button>
+    </div>
+  `).join('');
+}
+
+window.adjVendor = function(v, type, d) {
+  if (!state.orders[v]) state.orders[v] = { white: 0, whole: 0 };
+  state.orders[v][type] = Math.max(0, (state.orders[v][type] || 0) + d);
+  const vid = v.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
+  const el = document.getElementById(`v_${vid}_${type}`);
+  if (el) el.value = state.orders[v][type];
+  saveData();
+};
+
+window.setVendor = function(v, type, val) {
+  if (!state.orders[v]) state.orders[v] = { white: 0, whole: 0 };
+  state.orders[v][type] = Math.max(0, parseInt(val) || 0);
+  saveData();
+};
+
+window.adj = function(id, d) {
+  const el = document.getElementById(id);
+  el.value = Math.max(0, (parseInt(el.value) || 0) + d);
+  saveData();
+};
+
+function saveData() {
+  state.remain_white = Math.max(0, parseInt(document.getElementById('remain_white')?.value) || 0);
+  state.remain_whole = Math.max(0, parseInt(document.getElementById('remain_whole')?.value) || 0);
+  updateResult();
+  saveToFirebase();
+}
+
+function updateResult() {
+  let tw = 0, to = 0;
+  vendors.forEach(v => {
+    tw += state.orders[v]?.white || 0;
+    to += state.orders[v]?.whole || 0;
+  });
+  const rw = state.remain_white || 0;
+  const ro = state.remain_whole || 0;
+
+  const whiteNet = Math.max(0, tw + 15 - rw);
+  const whiteGuan = Math.max(1, Math.ceil(whiteNet / 6));
+  const whiteTiao = whiteGuan * 6;
+
+  let wholeGuan;
+  if (to === 0 && ro === 0) {
+    wholeGuan = 1;
+  } else {
+    const wholeNet = Math.max(0, to - ro);
+    wholeGuan = Math.max(1, Math.ceil(wholeNet / 6));
+  }
+  const wholeTiao = wholeGuan * 6;
+
+  document.getElementById('need-white-guan').textContent = whiteGuan + ' 貫';
+  document.getElementById('need-white-tiao').textContent = '（' + whiteTiao + ' 條）';
+  document.getElementById('need-whole-guan').textContent = wholeGuan + ' 貫';
+  document.getElementById('need-whole-tiao').textContent = '（' + wholeTiao + ' 條）';
+}
+
+window.addVendor = async function() {
+  const inp = document.getElementById('new-vendor-name');
+  const errEl = document.getElementById('vendor-error');
+  const name = inp.value.trim();
+  if (!name || vendors.includes(name)) {
+    errEl.classList.add('show');
+    inp.focus();
+    return;
+  }
+  errEl.classList.remove('show');
+  vendors.push(name);
+  state.orders[name] = { white: 0, whole: 0 };
+  await saveToFirebase();
+  inp.value = '';
+  renderAll();
+};
+
+window.removeVendor = async function(v) {
+  if (!confirm(`確定要移除「${v}」嗎？`)) return;
+  vendors = vendors.filter(x => x !== v);
+  delete state.orders[v];
+  await saveToFirebase();
+  renderAll();
+};
+
+window.switchTab = function(tab) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  const tabs = ['main', 'admin'];
+  document.querySelectorAll('.tab')[tabs.indexOf(tab)].classList.add('active');
+};
+
+// 每分鐘檢查歸零
+setInterval(async () => {
+  const cur = getResetDate();
+  if (state.resetDate !== cur) {
+    state = getDefaultState(vendors);
+    state.resetDate = cur;
+    await saveToFirebase();
+    renderAll();
+    const hour = getTaipeiHour();
+    document.getElementById('reset-note').textContent = hour >= 12
+      ? '資料將於明天中午 12:00 自動歸零'
+      : '資料將於今天中午 12:00 自動歸零';
+  }
+}, 60000);
+
+init();
+</script>
+</body>
+</html>
