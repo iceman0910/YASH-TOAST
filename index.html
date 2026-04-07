@@ -744,17 +744,26 @@ function updateResult() {
   const whiteTiao = whiteGuan * 6;
   const whiteStore = whiteTiao - totalWhite;
 
-  // 全麥：廠商+臨時=0且剩餘=0 → 預設條數進位；否則(廠商+臨時-剩餘)÷6進位，最少1貫
+  // 全麥：
+  // 廠商+臨時=0 且 剩餘≥2 → 0貫不做
+  // 廠商+臨時=0 且 剩餘<2 → 預設條數進位，最少1貫
+  // 廠商+臨時>0 → (廠商+臨時-剩餘)÷6進位，最少1貫
   const totalWhole = to + eo;
-  let wholeGuan;
-  if (totalWhole === 0 && ro === 0) {
+  let wholeGuan, wholeTiao, wholeStore;
+  if (totalWhole === 0 && ro >= 3) {
+    wholeGuan = 0;
+    wholeTiao = 0;
+    wholeStore = 0;
+  } else if (totalWhole === 0) {
     wholeGuan = Math.max(1, Math.ceil(defaultWholeTiao / 6));
+    wholeTiao = wholeGuan * 6;
+    wholeStore = wholeTiao - totalWhole;
   } else {
     const wholeNet = Math.max(0, totalWhole - ro);
     wholeGuan = Math.max(1, Math.ceil(wholeNet / 6));
+    wholeTiao = wholeGuan * 6;
+    wholeStore = wholeTiao - totalWhole;
   }
-  const wholeTiao = wholeGuan * 6;
-  const wholeStore = wholeTiao - totalWhole;
 
   document.getElementById('need-white-guan').textContent = whiteGuan + ' 貫';
   document.getElementById('need-white-tiao').textContent = '（' + whiteTiao + ' 條）';
@@ -763,10 +772,11 @@ function updateResult() {
     '廠商 ' + tw + ' 條' + whiteExtra + ' ＋ 店面 ' + whiteStore + ' 條 － 剩餘 ' + rw + ' 條';
 
   document.getElementById('need-whole-guan').textContent = wholeGuan + ' 貫';
-  document.getElementById('need-whole-tiao').textContent = '（' + wholeTiao + ' 條）';
+  document.getElementById('need-whole-tiao').textContent = wholeGuan === 0 ? '（不製作）' : '（' + wholeTiao + ' 條）';
   const wholeExtra = eo > 0 ? ' ＋ 臨時 ' + eo + ' 條' : '';
-  document.getElementById('whole-breakdown').textContent =
-    '廠商 ' + to + ' 條' + wholeExtra + ' ＋ 店面 ' + wholeStore + ' 條 － 剩餘 ' + ro + ' 條';
+  document.getElementById('whole-breakdown').textContent = wholeGuan === 0
+    ? '廠商未訂購，剩餘 ' + ro + ' 條，明日不製作'
+    : '廠商 ' + to + ' 條' + wholeExtra + ' ＋ 店面 ' + wholeStore + ' 條 － 剩餘 ' + ro + ' 條';
 }
 
 window.addVendor = async function() {
