@@ -273,7 +273,7 @@
     <div class="card">
       <div class="card-title">新增廠商</div>
       <div class="admin-input-row">
-        <input class="admin-input" type="text" id="new-vendor-name" placeholder="輸入廠商名稱" onkeydown="if(event.key==='Enter')addVendor()">
+        <input class="admin-input" type="text" id="new-vendor-name" placeholder="輸入廠商名稱">
         <button class="btn-add" onclick="addVendor()">新增</button>
       </div>
       <div class="error-msg" id="vendor-error">請輸入廠商名稱，且不能重複</div>
@@ -548,7 +548,8 @@ function renderVendorMgmt() {
       <span class="vendor-list-name" id="vname_${i}">${v}</span>
       <input class="admin-input" id="vedit_${i}" value="${v}"
         style="display:none;flex:1;height:40px;font-size:17px;margin-right:8px"
-        type="text">
+        type="text"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();saveEditVendor(${i})}else if(event.key==='Escape'){renderVendorMgmt()}">
       <div style="display:flex;gap:6px;align-items:center">
         <button class="btn-edit" id="vbtn_edit_${i}" onclick="startEditVendor(${i})">編輯</button>
         <button class="btn-save" id="vbtn_save_${i}" style="display:none" onclick="saveEditVendor(${i})">儲存</button>
