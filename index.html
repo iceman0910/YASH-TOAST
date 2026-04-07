@@ -139,6 +139,20 @@
     -webkit-tap-highlight-color: transparent;
   }
   .btn-del:active { opacity: 0.7; }
+  .btn-edit {
+    height: 38px; padding: 0 14px; font-size: 15px; font-weight: 500;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg2); color: var(--text); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-edit:active { background: var(--bg3); }
+  .btn-save {
+    height: 38px; padding: 0 14px; font-size: 15px; font-weight: 500;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg2); color: var(--success); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-save:active { background: var(--bg3); }
 
   /* Misc */
   .no-vendor { font-size: 17px; color: var(--text2); text-align: center; padding: 24px 0; }
@@ -165,7 +179,7 @@
   <div id="tab-main" class="tab-content active">
     <div id="vendor-inputs"></div>
 
-    <div class="card" style="border: 1.5px dashed var(--border2);">
+    <div class="card" style="border: 1.5px dashed var(--border2); background: var(--bg2);">
       <div class="card-title">臨時加單</div>
       <div class="field-row">
         <div class="field-label">白吐司</div>
@@ -529,13 +543,49 @@ function renderVendorMgmt() {
     el.innerHTML = '<div class="no-vendor">尚無廠商</div>';
     return;
   }
-  el.innerHTML = vendors.map(v => `
-    <div class="vendor-list-item">
-      <span class="vendor-list-name">${v}</span>
-      <button class="btn-del" onclick="removeVendor('${v}')">移除</button>
+  el.innerHTML = vendors.map((v, i) => `
+    <div class="vendor-list-item" id="vitem_${i}">
+      <span class="vendor-list-name" id="vname_${i}">${v}</span>
+      <input class="admin-input" id="vedit_${i}" value="${v}"
+        style="display:none;flex:1;height:40px;font-size:17px;margin-right:8px"
+        type="text">
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn-edit" id="vbtn_edit_${i}" onclick="startEditVendor(${i})">編輯</button>
+        <button class="btn-save" id="vbtn_save_${i}" style="display:none" onclick="saveEditVendor(${i})">儲存</button>
+        <button class="btn-del" onclick="removeVendor('${v}')">移除</button>
+      </div>
     </div>
   `).join('');
 }
+
+window.startEditVendor = function(i) {
+  document.getElementById('vname_' + i).style.display = 'none';
+  document.getElementById('vedit_' + i).style.display = 'block';
+  document.getElementById('vbtn_edit_' + i).style.display = 'none';
+  document.getElementById('vbtn_save_' + i).style.display = 'block';
+  document.getElementById('vedit_' + i).focus();
+};
+
+window.saveEditVendor = async function(i) {
+  const input = document.getElementById('vedit_' + i);
+  const newName = input.value.trim();
+  const oldName = vendors[i];
+  if (!newName || (newName !== oldName && vendors.includes(newName))) {
+    input.focus();
+    return;
+  }
+  if (newName === oldName) {
+    renderVendorMgmt();
+    return;
+  }
+  // 更新廠商名稱並搬移訂單資料
+  vendors[i] = newName;
+  state.orders[newName] = state.orders[oldName] || { white: 0, whole: 0 };
+  delete state.orders[oldName];
+  await saveToFirebase();
+  renderVendorInputs();
+  renderVendorMgmt();
+};
 
 window.adjVendor = function(v, type, d) {
   if (!state.orders[v]) state.orders[v] = { white: 0, whole: 0 };
