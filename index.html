@@ -356,8 +356,8 @@ let state = {};
 let isSyncing = false;
 let settings = { store_white: 15, default_whole_tiao: 6 };
 
-async function saveToFirebase() {
-  if (isSyncing) return;
+async function saveToFirebase(force = false) {
+  if (isSyncing && !force) return;
   const safeState = {
     remain_white: state.remain_white || 0,
     remain_whole: state.remain_whole || 0,
@@ -595,7 +595,6 @@ function applyLockUI() {
 
 window.toggleConfirm = async function() {
   state.locked = !state.locked;
-  await saveToFirebase();
 
   if (state.locked) {
     const whiteGuan = document.getElementById('need-white-guan').textContent;
@@ -607,7 +606,6 @@ window.toggleConfirm = async function() {
       await navigator.clipboard.writeText(msg);
       copied = true;
     } catch {
-      // fallback for older browsers
       try {
         const ta = document.createElement('textarea');
         ta.value = msg;
@@ -634,6 +632,10 @@ window.toggleConfirm = async function() {
   } else {
     applyLockUI();
   }
+
+  isSyncing = true;
+  await saveToFirebase(true);
+  isSyncing = false;
 };
 
 window.startEditVendor = function(i) {
