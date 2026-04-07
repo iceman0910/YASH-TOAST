@@ -158,12 +158,32 @@
 
   <div class="tabs">
     <div class="tab active" onclick="switchTab('main')">輸入訂單</div>
-    <div class="tab" onclick="switchTab('admin')">管理廠商</div>
+    <div class="tab" onclick="switchTab('admin')">管理模式</div>
   </div>
 
   <!-- 輸入訂單 -->
   <div id="tab-main" class="tab-content active">
     <div id="vendor-inputs"></div>
+
+    <div class="card" style="border: 1.5px dashed var(--border2);">
+      <div class="card-title">臨時加單</div>
+      <div class="field-row">
+        <div class="field-label">白吐司</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="adj('extra_white',-1)">－</button>
+          <input class="qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" id="extra_white" value="0" oninput="saveData()">
+          <button class="qty-btn" onclick="adj('extra_white',1)">＋</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-label">全麥吐司</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="adj('extra_whole',-1)">－</button>
+          <input class="qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" id="extra_whole" value="0" oninput="saveData()">
+          <button class="qty-btn" onclick="adj('extra_whole',1)">＋</button>
+        </div>
+      </div>
+    </div>
 
     <div class="card-yellow">
       <div class="card-title">當天剩餘庫存</div>
@@ -188,17 +208,23 @@
     <div class="summary-card">
       <div class="summary-label-row">隔天需製作數量</div>
       <div class="summary-row">
-        <div class="summary-row-label">白吐司<br><span style="font-size:13px;color:var(--text3)">廠商 + 店面15條，扣剩餘</span></div>
-        <div style="text-align:right">
+        <div style="flex:1">
+          <div style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px">白吐司</div>
+          <div style="font-size:16px;color:var(--text2)" id="white-breakdown">廠商 0 條 ＋ 店面 15 條 － 剩餘 0 條</div>
+        </div>
+        <div style="text-align:right;padding-left:12px">
           <div class="result-value" id="need-white-guan">0 貫</div>
-          <div style="font-size:15px;color:var(--text2)" id="need-white-tiao">（0 條）</div>
+          <div style="font-size:18px;color:var(--text2)" id="need-white-tiao">（0 條）</div>
         </div>
       </div>
       <div class="summary-row">
-        <div class="summary-row-label">全麥吐司<br><span style="font-size:13px;color:var(--text3)">廠商訂購，扣剩餘</span></div>
-        <div style="text-align:right">
+        <div style="flex:1">
+          <div style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px">全麥吐司</div>
+          <div style="font-size:16px;color:var(--text2)" id="whole-breakdown">廠商 0 條 ＋ 店面 0 條 － 剩餘 0 條</div>
+        </div>
+        <div style="text-align:right;padding-left:12px">
           <div class="result-value" id="need-whole-guan">0 貫</div>
-          <div style="font-size:15px;color:var(--text2)" id="need-whole-tiao">（0 條）</div>
+          <div style="font-size:18px;color:var(--text2)" id="need-whole-tiao">（0 條）</div>
         </div>
       </div>
     </div>
@@ -206,8 +232,30 @@
     <div class="reset-note" id="reset-note"></div>
   </div>
 
-  <!-- 管理廠商 -->
+  <!-- 管理模式 -->
   <div id="tab-admin" class="tab-content">
+    <div class="card">
+      <div class="card-title">預設數量設定</div>
+      <div class="field-row">
+        <div class="field-label">白吐司店面預設</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="adjSetting('store_white',-1)">－</button>
+          <input class="qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="1" id="setting_store_white" value="15" oninput="saveSetting('store_white',this.value)">
+          <button class="qty-btn" onclick="adjSetting('store_white',1)">＋</button>
+        </div>
+      </div>
+      <div style="font-size:14px;color:var(--text3);margin-bottom:14px;padding-left:2px">條（每天固定加入白吐司計算）</div>
+      <div class="field-row">
+        <div class="field-label">全麥無訂購預設</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="adjSetting('default_whole_tiao',-1)">－</button>
+          <input class="qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="1" id="setting_default_whole_tiao" value="6" oninput="saveSetting('default_whole_tiao',this.value)">
+          <button class="qty-btn" onclick="adjSetting('default_whole_tiao',1)">＋</button>
+        </div>
+      </div>
+      <div style="font-size:14px;color:var(--text3);padding-left:2px">條，不足一貫自動進位（廠商未訂購且無剩餘時）</div>
+    </div>
+
     <div class="card">
       <div class="card-title">新增廠商</div>
       <div class="admin-input-row">
@@ -283,12 +331,15 @@ function toKey(str) {
 let vendors = [];
 let state = {};
 let isSyncing = false;
+let settings = { store_white: 15, default_whole_tiao: 6 };
 
 async function saveToFirebase() {
   if (isSyncing) return;
   const safeState = {
     remain_white: state.remain_white || 0,
     remain_whole: state.remain_whole || 0,
+    extra_white: state.extra_white || 0,
+    extra_whole: state.extra_whole || 0,
     resetDate: state.resetDate,
     orders: {}
   };
@@ -299,10 +350,25 @@ async function saveToFirebase() {
   await set(ref(db, 'vendors'), vendors);
 }
 
+async function saveSettings() {
+  await set(ref(db, 'settings'), settings);
+  applySettingsToUI();
+  updateResult();
+}
+
+function applySettingsToUI() {
+  const sw = document.getElementById('setting_store_white');
+  const sg = document.getElementById('setting_default_whole_tiao');
+  if (sw) sw.value = settings.store_white;
+  if (sg) sg.value = settings.default_whole_tiao;
+}
+
 function applyState(data) {
   if (!data) return;
   state.remain_white = data.remain_white || 0;
   state.remain_whole = data.remain_whole || 0;
+  state.extra_white = data.extra_white || 0;
+  state.extra_whole = data.extra_whole || 0;
   state.resetDate = data.resetDate || getResetDate();
   if (data.orders) {
     vendors.forEach(v => {
@@ -312,8 +378,12 @@ function applyState(data) {
   }
   const rw = document.getElementById('remain_white');
   const ro = document.getElementById('remain_whole');
+  const ew = document.getElementById('extra_white');
+  const eo = document.getElementById('extra_whole');
   if (rw) rw.value = state.remain_white;
   if (ro) ro.value = state.remain_whole;
+  if (ew) ew.value = state.extra_white || 0;
+  if (eo) eo.value = state.extra_whole || 0;
   vendors.forEach(v => {
     const vid = v.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
     const ew = document.getElementById(`v_${vid}_white`);
@@ -326,6 +396,15 @@ function applyState(data) {
 
 async function init() {
   document.getElementById('date-display').textContent = '台北時間 ' + getTaipeiDateStr();
+
+  // 取得設定
+  const sSnap = await get(ref(db, 'settings'));
+  if (sSnap.exists()) {
+    settings = { ...settings, ...sSnap.val() };
+  } else {
+    await set(ref(db, 'settings'), settings);
+  }
+  applySettingsToUI();
 
   // 取得廠商列表
   const vSnap = await get(ref(db, 'vendors'));
@@ -350,6 +429,7 @@ async function init() {
       await saveToFirebase();
     } else {
       applyState(data);
+
     }
   } else {
     await saveToFirebase();
@@ -381,6 +461,16 @@ async function init() {
       });
       renderVendorInputs();
       renderVendorMgmt();
+    }
+  });
+
+  onValue(ref(db, 'settings'), (snap) => {
+    if (!snap.exists()) return;
+    const newSettings = snap.val();
+    if (JSON.stringify(newSettings) !== JSON.stringify(settings)) {
+      settings = { ...settings, ...newSettings };
+      applySettingsToUI();
+      updateResult();
     }
   });
 }
@@ -468,9 +558,24 @@ window.adj = function(id, d) {
   saveData();
 };
 
+window.adjSetting = function(key, d) {
+  const el = document.getElementById('setting_' + key);
+  const newVal = Math.max(1, (settings[key] || 1) + d);
+  settings[key] = newVal;
+  if (el) el.value = newVal;
+  saveSettings();
+};
+
+window.saveSetting = function(key, val) {
+  settings[key] = Math.max(1, parseInt(val) || 1);
+  saveSettings();
+};
+
 function saveData() {
   state.remain_white = Math.max(0, parseInt(document.getElementById('remain_white')?.value) || 0);
   state.remain_whole = Math.max(0, parseInt(document.getElementById('remain_whole')?.value) || 0);
+  state.extra_white = Math.max(0, parseInt(document.getElementById('extra_white')?.value) || 0);
+  state.extra_whole = Math.max(0, parseInt(document.getElementById('extra_whole')?.value) || 0);
   updateResult();
   saveToFirebase();
 }
@@ -481,26 +586,43 @@ function updateResult() {
     tw += state.orders[v]?.white || 0;
     to += state.orders[v]?.whole || 0;
   });
+  const ew = state.extra_white || 0;
+  const eo = state.extra_whole || 0;
   const rw = state.remain_white || 0;
   const ro = state.remain_whole || 0;
+  const storeWhite = settings.store_white || 15;
+  const defaultWholeTiao = settings.default_whole_tiao || 6;
 
-  const whiteNet = Math.max(0, tw + 15 - rw);
+  // 白吐司：廠商 + 臨時 + 店面預設 - 剩餘 → 無條件進位到貫，最少1貫
+  const totalWhite = tw + ew;
+  const whiteNet = Math.max(0, totalWhite + storeWhite - rw);
   const whiteGuan = Math.max(1, Math.ceil(whiteNet / 6));
   const whiteTiao = whiteGuan * 6;
+  const whiteStore = whiteTiao - totalWhite;
 
+  // 全麥：廠商+臨時=0且剩餘=0 → 預設條數進位；否則(廠商+臨時-剩餘)÷6進位，最少1貫
+  const totalWhole = to + eo;
   let wholeGuan;
-  if (to === 0 && ro === 0) {
-    wholeGuan = 1;
+  if (totalWhole === 0 && ro === 0) {
+    wholeGuan = Math.max(1, Math.ceil(defaultWholeTiao / 6));
   } else {
-    const wholeNet = Math.max(0, to - ro);
+    const wholeNet = Math.max(0, totalWhole - ro);
     wholeGuan = Math.max(1, Math.ceil(wholeNet / 6));
   }
   const wholeTiao = wholeGuan * 6;
+  const wholeStore = wholeTiao - totalWhole;
 
   document.getElementById('need-white-guan').textContent = whiteGuan + ' 貫';
   document.getElementById('need-white-tiao').textContent = '（' + whiteTiao + ' 條）';
+  const whiteExtra = ew > 0 ? ' ＋ 臨時 ' + ew + ' 條' : '';
+  document.getElementById('white-breakdown').textContent =
+    '廠商 ' + tw + ' 條' + whiteExtra + ' ＋ 店面 ' + whiteStore + ' 條 － 剩餘 ' + rw + ' 條';
+
   document.getElementById('need-whole-guan').textContent = wholeGuan + ' 貫';
   document.getElementById('need-whole-tiao').textContent = '（' + wholeTiao + ' 條）';
+  const wholeExtra = eo > 0 ? ' ＋ 臨時 ' + eo + ' 條' : '';
+  document.getElementById('whole-breakdown').textContent =
+    '廠商 ' + to + ' 條' + wholeExtra + ' ＋ 店面 ' + wholeStore + ' 條 － 剩餘 ' + ro + ' 條';
 }
 
 window.addVendor = async function() {
