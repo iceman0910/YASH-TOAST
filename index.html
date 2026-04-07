@@ -165,14 +165,18 @@
 </head>
 <body>
 <div class="app">
-  <div class="header">
+  <div class="header" style="position:relative">
     <h1>🍞 雅式吐司計算</h1>
     <div class="date" id="date-display"></div>
+    <div id="secret-zone" onclick="secretTap()" style="
+      position:absolute; top:0; right:0;
+      width:64px; height:64px;
+      cursor:default; -webkit-tap-highlight-color:transparent;
+    "></div>
   </div>
 
   <div class="tabs">
     <div class="tab active" onclick="switchTab('main')">輸入訂單</div>
-    <div class="tab" onclick="switchTab('admin')">管理模式</div>
   </div>
 
   <!-- 輸入訂單 -->
@@ -220,33 +224,46 @@
     </div>
 
     <div class="summary-card">
-      <div class="summary-label-row">隔天需製作數量</div>
+      <div class="summary-label-row" style="font-size:17px">隔天需製作數量</div>
       <div class="summary-row">
         <div style="flex:1">
-          <div style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px">白吐司</div>
-          <div style="font-size:16px;color:var(--text2)" id="white-breakdown">廠商 0 條 ＋ 店面 15 條 － 剩餘 0 條</div>
+          <div style="font-size:30px;font-weight:600;color:var(--text);margin-bottom:6px">白吐司</div>
+          <div style="font-size:30px;color:var(--text2)" id="white-breakdown">廠商 0 條 ＋ 店面 15 條 － 剩餘 0 條</div>
         </div>
         <div style="text-align:right;padding-left:12px">
-          <div class="result-value" id="need-white-guan">0 貫</div>
-          <div style="font-size:18px;color:var(--text2)" id="need-white-tiao">（0 條）</div>
+          <div class="result-value" style="font-size:38px" id="need-white-guan">0 貫</div>
+          <div style="font-size:22px;color:var(--text2)" id="need-white-tiao">（0 條）</div>
         </div>
       </div>
       <div class="summary-row">
         <div style="flex:1">
-          <div style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:4px">全麥吐司</div>
-          <div style="font-size:16px;color:var(--text2)" id="whole-breakdown">廠商 0 條 ＋ 店面 0 條 － 剩餘 0 條</div>
+          <div style="font-size:30px;font-weight:600;color:var(--text);margin-bottom:6px">全麥吐司</div>
+          <div style="font-size:30px;color:var(--text2)" id="whole-breakdown">廠商 0 條 ＋ 店面 0 條 － 剩餘 0 條</div>
         </div>
         <div style="text-align:right;padding-left:12px">
-          <div class="result-value" id="need-whole-guan">0 貫</div>
-          <div style="font-size:18px;color:var(--text2)" id="need-whole-tiao">（0 條）</div>
+          <div class="result-value" style="font-size:38px" id="need-whole-guan">0 貫</div>
+          <div style="font-size:22px;color:var(--text2)" id="need-whole-tiao">（0 條）</div>
         </div>
       </div>
     </div>
 
     <div class="reset-note" id="reset-note"></div>
+
+    <div style="padding: 8px 0 4px">
+      <button id="confirm-btn" onclick="toggleConfirm()" style="
+        width:100%; padding: 18px 0; font-size: 22px; font-weight: 600;
+        border-radius: var(--radius-lg); border: none; cursor: pointer;
+        background: #2d7a3a; color: #fff;
+        -webkit-tap-highlight-color: transparent; transition: background 0.15s;
+      ">當日數量已確認</button>
+      <div id="confirm-note" style="font-size:14px;color:var(--text3);text-align:center;margin-top:8px;display:none">
+        數量已鎖定，再按一次可重新修改
+      </div>
+    </div>
   </div>
 
-  <!-- 管理模式 -->
+  <!-- 管理模式（隱藏，右上角連點3下開啟） -->
+  <div id="admin-tab" style="display:none">
   <div id="tab-admin" class="tab-content">
     <div class="card">
       <div class="card-title">預設數量設定</div>
@@ -284,6 +301,7 @@
       <div id="vendor-mgmt-list"></div>
     </div>
   </div>
+  </div>
 </div>
 
 <script type="module">
@@ -318,17 +336,8 @@ function getTaipeiHour() {
 }
 
 function getResetDate() {
-  const d = new Date();
-  const hour = getTaipeiHour();
-  if (hour >= 12) {
-    return getTaipeiDateStr();
-  } else {
-    const yesterday = new Date(d);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toLocaleDateString('zh-TW', {
-      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit'
-    });
-  }
+  // 凌晨0點後算新的一天
+  return getTaipeiDateStr();
 }
 
 function getDefaultState(vendors) {
@@ -354,6 +363,7 @@ async function saveToFirebase() {
     remain_whole: state.remain_whole || 0,
     extra_white: state.extra_white || 0,
     extra_whole: state.extra_whole || 0,
+    locked: state.locked || false,
     resetDate: state.resetDate,
     orders: {}
   };
@@ -383,6 +393,7 @@ function applyState(data) {
   state.remain_whole = data.remain_whole || 0;
   state.extra_white = data.extra_white || 0;
   state.extra_whole = data.extra_whole || 0;
+  state.locked = data.locked || false;
   state.resetDate = data.resetDate || getResetDate();
   if (data.orders) {
     vendors.forEach(v => {
@@ -405,6 +416,7 @@ function applyState(data) {
     if (ew) ew.value = state.orders[v]?.white || 0;
     if (eo) eo.value = state.orders[v]?.whole || 0;
   });
+  applyLockUI();
   updateResult();
 }
 
@@ -451,11 +463,7 @@ async function init() {
 
   renderAll();
 
-  const hour = getTaipeiHour();
-  const note = hour >= 12
-    ? '資料將於明天中午 12:00 自動歸零'
-    : '資料將於今天中午 12:00 自動歸零';
-  document.getElementById('reset-note').textContent = note;
+  document.getElementById('reset-note').textContent = '資料將於今天凌晨 12:00 自動歸零';
 
   // 即時監聽 Firebase 資料變動（其他手機更新時同步）
   onValue(ref(db, 'data'), (snap) => {
@@ -535,6 +543,7 @@ function renderVendorInputs() {
   const ro = document.getElementById('remain_whole');
   if (rw) rw.value = state.remain_white || 0;
   if (ro) ro.value = state.remain_whole || 0;
+  applyLockUI();
 }
 
 function renderVendorMgmt() {
@@ -558,6 +567,53 @@ function renderVendorMgmt() {
     </div>
   `).join('');
 }
+
+function applyLockUI() {
+  const locked = state.locked || false;
+  const btn = document.getElementById('confirm-btn');
+  const note = document.getElementById('confirm-note');
+  if (!btn) return;
+
+  if (locked) {
+    btn.textContent = '重新開放修改';
+    btn.style.background = '#888780';
+    note.style.display = 'block';
+  } else {
+    btn.textContent = '當日數量已確認';
+    btn.style.background = '#2d7a3a';
+    note.style.display = 'none';
+    note.textContent = '數量已鎖定，再按一次可重新修改';
+    note.style.color = 'var(--text3)';
+  }
+
+  // 鎖定或解鎖所有輸入欄位與按鈕
+  document.querySelectorAll('.qty-input, .qty-btn').forEach(el => {
+    el.disabled = locked;
+    el.style.opacity = locked ? '0.4' : '1';
+  });
+}
+
+window.toggleConfirm = async function() {
+  state.locked = !state.locked;
+  applyLockUI();
+  await saveToFirebase();
+
+  if (state.locked) {
+    const whiteGuan = document.getElementById('need-white-guan').textContent;
+    const wholeGuan = document.getElementById('need-whole-guan').textContent;
+    const msg = `白吐司 ${whiteGuan}\n全麥吐司 ${wholeGuan}`;
+    try {
+      await navigator.clipboard.writeText(msg);
+      const note = document.getElementById('confirm-note');
+      note.textContent = '✓ 已複製！可直接貼到 LINE 群';
+      note.style.color = 'var(--success)';
+    } catch {
+      const note = document.getElementById('confirm-note');
+      note.textContent = '數量已鎖定，再按一次可重新修改';
+      note.style.color = 'var(--text3)';
+    }
+  }
+};
 
 window.startEditVendor = function(i) {
   document.getElementById('vname_' + i).style.display = 'none';
@@ -701,12 +757,35 @@ window.removeVendor = async function(v) {
   renderAll();
 };
 
+let secretTapCount = 0;
+let secretTapTimer = null;
+
+window.secretTap = function() {
+  secretTapCount++;
+  clearTimeout(secretTapTimer);
+  if (secretTapCount >= 3) {
+    secretTapCount = 0;
+    const adminTab = document.getElementById('admin-tab');
+    const isVisible = adminTab.style.display !== 'none';
+    if (isVisible) {
+      adminTab.style.display = 'none';
+      switchTab('main');
+    } else {
+      adminTab.style.display = 'block';
+      switchTab('admin');
+    }
+  } else {
+    secretTapTimer = setTimeout(() => { secretTapCount = 0; }, 600);
+  }
+};
+
 window.switchTab = function(tab) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-  const tabs = ['main', 'admin'];
-  document.querySelectorAll('.tab')[tabs.indexOf(tab)].classList.add('active');
+  if (tab === 'main') {
+    document.querySelector('.tab').classList.add('active');
+  }
 };
 
 // 每分鐘檢查歸零
@@ -717,10 +796,7 @@ setInterval(async () => {
     state.resetDate = cur;
     await saveToFirebase();
     renderAll();
-    const hour = getTaipeiHour();
-    document.getElementById('reset-note').textContent = hour >= 12
-      ? '資料將於明天中午 12:00 自動歸零'
-      : '資料將於今天中午 12:00 自動歸零';
+    document.getElementById('reset-note').textContent = '資料將於今天凌晨 12:00 自動歸零';
   }
 }, 60000);
 
