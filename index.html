@@ -599,7 +599,21 @@ window.toggleConfirm = async function() {
   if (state.locked) {
     const whiteGuan = document.getElementById('need-white-guan').textContent;
     const wholeGuan = document.getElementById('need-whole-guan').textContent;
-    const msg = `白吐司 ${whiteGuan}\n全麥吐司 ${wholeGuan}`;
+
+    // 計算隔天日期（台北時間），週六跳到週一
+    const now = new Date();
+    const taipeiStr = now.toLocaleDateString('zh-TW', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const [y, m, d] = taipeiStr.split('/').map(Number);
+    const today = new Date(y, m - 1, d);
+    const dayOfWeek = today.getDay(); // 0=日,1=一,...,6=六
+    const daysToAdd = dayOfWeek === 6 ? 2 : 1; // 週六加2天到週一
+    const next = new Date(today);
+    next.setDate(today.getDate() + daysToAdd);
+    const mm = String(next.getMonth() + 1).padStart(2, '0');
+    const dd = String(next.getDate()).padStart(2, '0');
+    const dateLabel = `${mm}/${dd}`;
+
+    const msg = `${dateLabel}\n白吐司 ${whiteGuan}\n全麥吐司 ${wholeGuan}`;
 
     let copied = false;
     try {
