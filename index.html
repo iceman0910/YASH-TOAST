@@ -595,23 +595,44 @@ function applyLockUI() {
 
 window.toggleConfirm = async function() {
   state.locked = !state.locked;
-  applyLockUI();
   await saveToFirebase();
 
   if (state.locked) {
     const whiteGuan = document.getElementById('need-white-guan').textContent;
     const wholeGuan = document.getElementById('need-whole-guan').textContent;
     const msg = `白吐司 ${whiteGuan}\n全麥吐司 ${wholeGuan}`;
+
+    let copied = false;
     try {
       await navigator.clipboard.writeText(msg);
-      const note = document.getElementById('confirm-note');
+      copied = true;
+    } catch {
+      // fallback for older browsers
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = msg;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        copied = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch { copied = false; }
+    }
+
+    applyLockUI();
+    const note = document.getElementById('confirm-note');
+    note.style.display = 'block';
+    if (copied) {
       note.textContent = '✓ 已複製！可直接貼到 LINE 群';
       note.style.color = 'var(--success)';
-    } catch {
-      const note = document.getElementById('confirm-note');
+    } else {
       note.textContent = '數量已鎖定，再按一次可重新修改';
       note.style.color = 'var(--text3)';
     }
+  } else {
+    applyLockUI();
   }
 };
 
