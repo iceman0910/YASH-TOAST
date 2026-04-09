@@ -161,6 +161,12 @@
   .divider { border: none; border-top: 0.5px solid var(--border); margin: 10px 0; }
   .error-msg { font-size: 14px; color: var(--danger); margin-top: 6px; display: none; }
   .error-msg.show { display: block; }
+  .history-item { padding: 14px 0; border-bottom: 0.5px solid var(--border); }
+  .history-item:last-child { border-bottom: none; }
+  .history-date { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .history-guan { font-size: 20px; font-weight: 600; color: var(--success); }
+  .history-detail { font-size: 14px; color: var(--text2); margin-top: 4px; }
+  .history-vendor { font-size: 14px; color: var(--text3); padding-left: 8px; }
 </style>
 </head>
 <body>
@@ -299,6 +305,11 @@
     <div class="card">
       <div class="card-title">廠商列表</div>
       <div id="vendor-mgmt-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">歷史結算紀錄</div>
+      <div id="history-list"><div class="no-vendor">尚無歷史紀錄</div></div>
     </div>
   </div>
   </div>
@@ -826,6 +837,7 @@ window.secretTap = function() {
     } else {
       adminTab.style.display = 'block';
       switchTab('admin');
+      loadAndRenderHistory();
     }
   } else {
     secretTapTimer = setTimeout(() => { secretTapCount = 0; }, 600);
@@ -845,6 +857,7 @@ window.switchTab = function(tab) {
 setInterval(async () => {
   const cur = getResetDate();
   if (state.resetDate !== cur) {
+    await saveHistory();
     state = getDefaultState(vendors);
     state.resetDate = cur;
     await saveToFirebase();
@@ -852,6 +865,97 @@ setInterval(async () => {
     document.getElementById('reset-note').textContent = '資料將於今天凌晨 12:00 自動歸零';
   }
 }, 60000);
+
+async function saveHistory() {
+  // 計算當天結算數量
+  let tw = 0, to = 0;
+  vendors.forEach(v => {
+    tw += state.orders[v]?.white || 0;
+    to += state.orders[v]?.whole || 0;
+  });
+  const ew = state.extra_white || 0;
+  const eo = state.extra_whole || 0;
+  const rw = state.remain_white || 0;
+  const ro = state.remain_whole || 0;
+  const storeWhite = settings.store_white || 15;
+  const defaultWholeTiao = settings.default_whole_tiao || 6;
+
+  const totalWhite = tw + ew;
+  const whiteNet = Math.max(0, totalWhite + storeWhite - rw);
+  const whiteGuan = Math.max(1, Math.ceil(whiteNet / 6));
+
+  const totalWhole = to + eo;
+  let wholeGuan;
+  if (totalWhole === 0 && ro >= 3) {
+    wholeGuan = 0;
+  } else if (totalWhole === 0) {
+    wholeGuan = Math.max(1, Math.ceil(defaultWholeTiao / 6));
+  } else {
+    const wholeNet = Math.max(0, totalWhole - ro);
+    wholeGuan = Math.max(1, Math.ceil(wholeNet / 6));
+    if ((wholeGuan * 6) - totalWhole < 2) wholeGuan += 1;
+  }
+
+  // 廠商明細
+  const vendorDetail = {};
+  vendors.forEach(v => {
+    const w = state.orders[v]?.white || 0;
+    const o = state.orders[v]?.whole || 0;
+    if (w > 0 || o > 0) vendorDetail[toKey(v)] = { name: v, white: w, whole: o };
+  });
+
+  const record = {
+    date: state.resetDate,
+    whiteGuan,
+    whiteTiao: whiteGuan * 6,
+    wholeGuan,
+    wholeTiao: wholeGuan * 6,
+    remainWhite: rw,
+    remainWhole: ro,
+    extraWhite: ew,
+    extraWhole: eo,
+    vendors: vendorDetail
+  };
+
+  // 只保留最近30筆
+  const histSnap = await get(ref(db, 'history'));
+  let history = histSnap.exists() ? histSnap.val() : [];
+  if (!Array.isArray(history)) history = Object.values(history);
+  history.unshift(record);
+  if (history.length > 30) history = history.slice(0, 30);
+  await set(ref(db, 'history'), history);
+}
+
+async function loadAndRenderHistory() {
+  const histSnap = await get(ref(db, 'history'));
+  const el = document.getElementById('history-list');
+  if (!el) return;
+  if (!histSnap.exists()) {
+    el.innerHTML = '<div class="no-vendor">尚無歷史紀錄</div>';
+    return;
+  }
+  let history = histSnap.val();
+  if (!Array.isArray(history)) history = Object.values(history);
+  if (history.length === 0) {
+    el.innerHTML = '<div class="no-vendor">尚無歷史紀錄</div>';
+    return;
+  }
+  el.innerHTML = history.map(r => {
+    const vendorLines = Object.values(r.vendors || {}).map(v =>
+      `<div class="history-vendor">・${v.name}：白 ${v.white} 條 / 全麥 ${v.whole} 條</div>`
+    ).join('');
+    const wholeText = r.wholeGuan === 0 ? '不製作' : `${r.wholeGuan} 貫（${r.wholeTiao} 條）`;
+    return `
+      <div class="history-item">
+        <div class="history-date">${r.date}</div>
+        <div class="history-guan">白吐司 ${r.whiteGuan} 貫（${r.whiteTiao} 條）</div>
+        <div class="history-guan">全麥吐司 ${wholeText}</div>
+        <div class="history-detail">剩餘：白 ${r.remainWhite} 條 / 全麥 ${r.remainWhole} 條</div>
+        ${r.extraWhite > 0 || r.extraWhole > 0 ? `<div class="history-detail">臨時：白 ${r.extraWhite} 條 / 全麥 ${r.extraWhole} 條</div>` : ''}
+        ${vendorLines ? `<div class="history-detail" style="margin-top:4px">廠商明細：</div>${vendorLines}` : ''}
+      </div>`;
+  }).join('');
+}
 
 init();
 </script>
