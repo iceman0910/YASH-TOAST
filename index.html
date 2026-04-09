@@ -773,13 +773,12 @@ function updateResult() {
     const wholeNet = Math.max(0, totalWhole - ro);
     wholeGuan = Math.max(1, Math.ceil(wholeNet / 6));
     wholeTiao = wholeGuan * 6;
-    wholeStore = wholeTiao - totalWhole;
-    // 確保店面至少有2條
-    if (wholeStore < 2) {
+    // 確保製作後店面至少有2條（含剩餘庫存）
+    if ((wholeTiao + ro - totalWhole) < 2) {
       wholeGuan += 1;
       wholeTiao = wholeGuan * 6;
-      wholeStore = wholeTiao - totalWhole;
     }
+    wholeStore = wholeTiao + ro - totalWhole;
   }
 
   document.getElementById('need-white-guan').textContent = whiteGuan + ' 貫';
@@ -893,7 +892,7 @@ async function saveHistory() {
   } else {
     const wholeNet = Math.max(0, totalWhole - ro);
     wholeGuan = Math.max(1, Math.ceil(wholeNet / 6));
-    if ((wholeGuan * 6) - totalWhole < 2) wholeGuan += 1;
+    if ((wholeGuan * 6 + ro - totalWhole) < 2) wholeGuan += 1;
   }
 
   // 廠商明細
