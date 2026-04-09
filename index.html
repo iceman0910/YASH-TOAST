@@ -781,18 +781,24 @@ function updateResult() {
     wholeStore = wholeTiao + ro - totalWhole;
   }
 
+  // 白吐司店面實際可賣 = 製作條數 + 剩餘 - 廠商訂購
+  const whiteStoreActual = whiteTiao + rw - totalWhite;
+
   document.getElementById('need-white-guan').textContent = whiteGuan + ' 貫';
   document.getElementById('need-white-tiao').textContent = '（' + whiteTiao + ' 條）';
-  const whiteExtra = ew > 0 ? ' ＋ 臨時 ' + ew + ' 條' : '';
+  const whiteExtraText = ew > 0 ? '　臨時 ' + ew + ' 條' : '';
   document.getElementById('white-breakdown').textContent =
-    '廠商 ' + tw + ' 條' + whiteExtra + ' ＋ 店面 ' + whiteStore + ' 條 － 剩餘 ' + rw + ' 條';
+    '廠商 ' + tw + ' 條' + whiteExtraText + '　店面 ' + whiteStoreActual + ' 條';
+
+  // 全麥店面實際可賣 = 製作條數 + 剩餘 - 廠商訂購
+  const wholeStoreActual = wholeTiao + ro - totalWhole;
 
   document.getElementById('need-whole-guan').textContent = wholeGuan + ' 貫';
   document.getElementById('need-whole-tiao').textContent = wholeGuan === 0 ? '（不製作）' : '（' + wholeTiao + ' 條）';
-  const wholeExtra = eo > 0 ? ' ＋ 臨時 ' + eo + ' 條' : '';
+  const wholeExtraText = eo > 0 ? '　臨時 ' + eo + ' 條' : '';
   document.getElementById('whole-breakdown').textContent = wholeGuan === 0
-    ? '廠商未訂購，剩餘 ' + ro + ' 條，明日不製作'
-    : '廠商 ' + to + ' 條' + wholeExtra + ' ＋ 店面 ' + wholeStore + ' 條 － 剩餘 ' + ro + ' 條';
+    ? '廠商未訂購　剩餘 ' + ro + ' 條　明日不製作'
+    : '廠商 ' + to + ' 條' + wholeExtraText + '　店面 ' + wholeStoreActual + ' 條';
 }
 
 window.addVendor = async function() {
