@@ -276,6 +276,7 @@
       <div id="confirm-note" style="font-size:14px;color:var(--text3);text-align:center;margin-top:8px;display:none">
         數量已鎖定，再按一次可重新修改
       </div>
+      <div id="confirm-time" style="font-size:14px;color:var(--text3);text-align:center;margin-top:4px;display:none"></div>
     </div>
 
     <div style="padding: 4px 0 16px">
@@ -436,6 +437,7 @@ async function saveToFirebase(force = false) {
     extra_white: state.extra_white || 0,
     extra_whole: state.extra_whole || 0,
     locked: state.locked || false,
+    confirmTime: state.confirmTime || null,
     resetDate: state.resetDate,
     orders: {}
   };
@@ -466,6 +468,7 @@ function applyState(data) {
   state.extra_white = data.extra_white || 0;
   state.extra_whole = data.extra_whole || 0;
   state.locked = data.locked || false;
+  state.confirmTime = data.confirmTime || null;
   state.resetDate = data.resetDate || getResetDate();
   if (data.orders) {
     vendors.forEach(v => {
@@ -655,12 +658,19 @@ function applyLockUI() {
     btn.textContent = '重新開放修改';
     btn.style.background = '#888780';
     note.style.display = 'block';
+    const timeEl = document.getElementById('confirm-time');
+    if (timeEl) {
+      timeEl.style.display = state.confirmTime ? 'block' : 'none';
+      timeEl.textContent = state.confirmTime ? '確認時間：' + state.confirmTime : '';
+    }
   } else {
     btn.textContent = '當日數量已確認';
     btn.style.background = '#2d7a3a';
     note.style.display = 'none';
     note.textContent = '數量已鎖定，再按一次可重新修改';
     note.style.color = 'var(--text3)';
+    const timeEl = document.getElementById('confirm-time');
+    if (timeEl) timeEl.style.display = 'none';
   }
 
   // 只鎖定輸入訂單頁面的欄位，不影響管理模式
@@ -682,6 +692,7 @@ window.toggleConfirm = async function() {
   }
   // 解鎖
   state.locked = false;
+  state.confirmTime = null;
   applyLockUI();
   isSyncing = true;
   await saveToFirebase(true);
@@ -694,6 +705,10 @@ window.dialogAnswer = async function(confirmed) {
   if (!confirmed) return;
 
   state.locked = true;
+  state.confirmTime = new Date().toLocaleString('zh-TW', {
+    timeZone: TZ, month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
 
   const whiteGuan = document.getElementById('need-white-guan').textContent;
   const wholeGuan = document.getElementById('need-whole-guan').textContent;
