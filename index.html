@@ -179,14 +179,6 @@
       width:64px; height:64px;
       cursor:default; -webkit-tap-highlight-color:transparent;
     "></div>
-    <button onclick="location.reload()" style="
-      position:absolute; top:14px; right:16px;
-      width:36px; height:36px; font-size:20px;
-      border:none; background:transparent; color:var(--text2);
-      cursor:pointer; -webkit-tap-highlight-color:transparent;
-      display:flex; align-items:center; justify-content:center;
-      border-radius:50%;
-    ">↺</button>
   </div>
 
   <div class="tabs">
@@ -273,6 +265,15 @@
       <div id="confirm-note" style="font-size:14px;color:var(--text3);text-align:center;margin-top:8px;display:none">
         數量已鎖定，再按一次可重新修改
       </div>
+    </div>
+
+    <div style="padding: 4px 0 16px">
+      <button onclick="location.reload()" style="
+        width:100%; padding: 14px 0; font-size: 18px; font-weight: 500;
+        border-radius: var(--radius-lg); border: 0.5px solid var(--border2);
+        background: var(--bg2); color: var(--text2);
+        cursor:pointer; -webkit-tap-highlight-color:transparent;
+      ">↺ 重新整理</button>
     </div>
   </div>
 
@@ -497,15 +498,12 @@ async function init() {
 
   onValue(ref(db, 'vendors'), (snap) => {
     if (!snap.exists()) return;
-    const newVendors = snap.val();
-    if (JSON.stringify(newVendors) !== JSON.stringify(vendors)) {
-      vendors = newVendors;
-      vendors.forEach(v => {
-        if (!state.orders[v]) state.orders[v] = { white: 0, whole: 0 };
-      });
-      renderVendorInputs();
-      renderVendorMgmt();
-    }
+    vendors = snap.val();
+    vendors.forEach(v => {
+      if (!state.orders[v]) state.orders[v] = { white: 0, whole: 0 };
+    });
+    renderVendorInputs();
+    renderVendorMgmt();
   });
 
   onValue(ref(db, 'settings'), (snap) => {
