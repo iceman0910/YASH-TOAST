@@ -1055,7 +1055,7 @@ async function loadAndRenderHistory() {
     el.innerHTML = '<div class="no-vendor">尚無歷史紀錄</div>';
     return;
   }
-  el.innerHTML = history.map(r => {
+  el.innerHTML = history.map((r, i) => {
     const vendorLines = Object.values(r.vendors || {}).map(v =>
       '<div class="history-vendor">・' + v.name + '：白 ' + v.white + ' 條 / 全麥 ' + v.whole + ' 條</div>'
     ).join('');
@@ -1067,7 +1067,10 @@ async function loadAndRenderHistory() {
       ? '<div class="history-detail" style="margin-top:4px">廠商明細：</div>' + vendorLines
       : '';
     return '<div class="history-item">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
       + '<div class="history-date">' + r.date + '</div>'
+      + '<button class="btn-del" onclick="deleteHistory(' + i + ')">刪除</button>'
+      + '</div>'
       + '<div class="history-guan">白吐司 ' + r.whiteGuan + ' 貫（' + r.whiteTiao + ' 條）</div>'
       + '<div class="history-guan">全麥吐司 ' + wholeText + '</div>'
       + '<div class="history-detail">剩餘：白 ' + r.remainWhite + ' 條 / 全麥 ' + r.remainWhole + ' 條</div>'
@@ -1075,6 +1078,17 @@ async function loadAndRenderHistory() {
       + '</div>';
   }).join('');
 }
+
+window.deleteHistory = async function(i) {
+  if (!confirm('確定要刪除這筆紀錄嗎？')) return;
+  const histSnap = await get(ref(db, 'history'));
+  if (!histSnap.exists()) return;
+  let history = histSnap.val();
+  if (!Array.isArray(history)) history = Object.values(history);
+  history.splice(i, 1);
+  await set(ref(db, 'history'), history);
+  await loadAndRenderHistory();
+};
 
 init();
 
