@@ -608,11 +608,14 @@ function applyLockUI() {
     note.style.color = 'var(--text3)';
   }
 
-  // 鎖定或解鎖所有輸入欄位與按鈕
-  document.querySelectorAll('.qty-input, .qty-btn').forEach(el => {
-    el.disabled = locked;
-    el.style.opacity = locked ? '0.4' : '1';
-  });
+  // 只鎖定輸入訂單頁面的欄位，不影響管理模式
+  const mainTab = document.getElementById('tab-main');
+  if (mainTab) {
+    mainTab.querySelectorAll('.qty-input, .qty-btn').forEach(el => {
+      el.disabled = locked;
+      el.style.opacity = locked ? '0.4' : '1';
+    });
+  }
 }
 
 window.toggleConfirm = async function() {
