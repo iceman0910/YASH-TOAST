@@ -344,6 +344,36 @@
   </div>
 </div>
 
+<!-- 自訂確認對話框 -->
+<div id="custom-dialog" style="
+  display:none; position:fixed; inset:0; z-index:999;
+  background:rgba(0,0,0,0.5);
+  align-items:center; justify-content:center;
+">
+  <div style="
+    background:var(--bg); border-radius:var(--radius-lg);
+    padding:28px 24px; margin:20px; max-width:360px; width:100%;
+  ">
+    <div style="font-size:20px;font-weight:600;color:var(--text);text-align:center;margin-bottom:24px">
+      確認今日數量皆已正確？
+    </div>
+    <div style="display:flex;gap:12px">
+      <button onclick="dialogAnswer(false)" style="
+        flex:1; padding:16px 0; font-size:20px; font-weight:600;
+        border:none; border-radius:var(--radius-lg); cursor:pointer;
+        background:#c0392b; color:#fff;
+        -webkit-tap-highlight-color:transparent;
+      ">否</button>
+      <button onclick="dialogAnswer(true)" style="
+        flex:1; padding:16px 0; font-size:20px; font-weight:600;
+        border:none; border-radius:var(--radius-lg); cursor:pointer;
+        background:#2d7a3a; color:#fff;
+        -webkit-tap-highlight-color:transparent;
+      ">是</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, onValue, set, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
@@ -645,62 +675,69 @@ function applyLockUI() {
 
 window.toggleConfirm = async function() {
   if (!state.locked) {
-    // 按下確認前先跳出確認對話框
-    const confirmed = confirm('確認今日數量皆已正確？');
-    if (!confirmed) return;
+    // 顯示自訂對話框
+    const dialog = document.getElementById('custom-dialog');
+    dialog.style.display = 'flex';
+    return;
+  }
+  // 解鎖
+  state.locked = false;
+  applyLockUI();
+  isSyncing = true;
+  await saveToFirebase(true);
+  isSyncing = false;
+};
+
+window.dialogAnswer = async function(confirmed) {
+  const dialog = document.getElementById('custom-dialog');
+  dialog.style.display = 'none';
+  if (!confirmed) return;
+
+  state.locked = true;
+
+  const whiteGuan = document.getElementById('need-white-guan').textContent;
+  const wholeGuan = document.getElementById('need-whole-guan').textContent;
+
+  const now = new Date();
+  const taipeiStr = now.toLocaleDateString('zh-TW', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const [y, m, d] = taipeiStr.split('/').map(Number);
+  const today = new Date(y, m - 1, d);
+  const dayOfWeek = today.getDay();
+  const daysToAdd = dayOfWeek === 6 ? 2 : 1;
+  const next = new Date(today);
+  next.setDate(today.getDate() + daysToAdd);
+  const mm = String(next.getMonth() + 1).padStart(2, '0');
+  const dd = String(next.getDate()).padStart(2, '0');
+  const dateLabel = mm + '/' + dd;
+  const msg = dateLabel + '\n白吐司 ' + whiteGuan + '\n全麥吐司 ' + wholeGuan;
+
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(msg);
+    copied = true;
+  } catch {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = msg;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      copied = document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch { copied = false; }
   }
 
-  state.locked = !state.locked;
-
-  if (state.locked) {
-    const whiteGuan = document.getElementById('need-white-guan').textContent;
-    const wholeGuan = document.getElementById('need-whole-guan').textContent;
-
-    // 計算隔天日期（台北時間），週六跳到週一
-    const now = new Date();
-    const taipeiStr = now.toLocaleDateString('zh-TW', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
-    const [y, m, d] = taipeiStr.split('/').map(Number);
-    const today = new Date(y, m - 1, d);
-    const dayOfWeek = today.getDay();
-    const daysToAdd = dayOfWeek === 6 ? 2 : 1;
-    const next = new Date(today);
-    next.setDate(today.getDate() + daysToAdd);
-    const mm = String(next.getMonth() + 1).padStart(2, '0');
-    const dd = String(next.getDate()).padStart(2, '0');
-    const dateLabel = `${mm}/${dd}`;
-
-    const msg = `${dateLabel}\n白吐司 ${whiteGuan}\n全麥吐司 ${wholeGuan}`;
-
-    let copied = false;
-    try {
-      await navigator.clipboard.writeText(msg);
-      copied = true;
-    } catch {
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = msg;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        copied = document.execCommand('copy');
-        document.body.removeChild(ta);
-      } catch { copied = false; }
-    }
-
-    applyLockUI();
-    const note = document.getElementById('confirm-note');
-    note.style.display = 'block';
-    if (copied) {
-      note.textContent = '✓ 吐司數量已複製到剪貼簿，請到雅式 LINE 群組貼上';
-      note.style.color = 'var(--success)';
-    } else {
-      note.textContent = '數量已鎖定，再按一次可重新修改';
-      note.style.color = 'var(--text3)';
-    }
+  applyLockUI();
+  const note = document.getElementById('confirm-note');
+  note.style.display = 'block';
+  if (copied) {
+    note.textContent = '✓ 吐司數量已複製到剪貼簿，請到雅式 LINE 群組貼上';
+    note.style.color = 'var(--success)';
   } else {
-    applyLockUI();
+    note.textContent = '數量已鎖定，再按一次可重新修改';
+    note.style.color = 'var(--text3)';
   }
 
   isSyncing = true;
