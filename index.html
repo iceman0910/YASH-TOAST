@@ -167,6 +167,17 @@
   .history-guan { font-size: 20px; font-weight: 600; color: var(--success); }
   .history-detail { font-size: 14px; color: var(--text2); margin-top: 4px; }
   .history-vendor { font-size: 14px; color: var(--text3); padding-left: 8px; }
+  .schedule-vendor { border-bottom: 0.5px solid var(--border); padding-bottom: 14px; margin-bottom: 14px; }
+  .schedule-vendor:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .schedule-vendor-name { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .schedule-body { display: none; }
+  .schedule-body.open { display: block; }
+  .schedule-day-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .schedule-day-label { font-size: 16px; color: var(--text2); width: 32px; flex-shrink: 0; }
+  .schedule-type-label { font-size: 14px; color: var(--text3); width: 36px; flex-shrink: 0; }
+  .schedule-input { width: 60px; height: 38px; font-size: 17px; font-weight: 600; text-align: center; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); -webkit-appearance: none; appearance: none; }
+  .schedule-input::-webkit-outer-spin-button, .schedule-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .schedule-input[type=number] { -moz-appearance: textfield; }
 </style>
 </head>
 <body>
@@ -317,6 +328,12 @@
     </div>
 
     <div class="card">
+      <div class="card-title">廠商預設排程</div>
+      <div style="font-size:14px;color:var(--text3);margin-bottom:12px">設定各廠商每週固定叫貨數量，每天自動帶入</div>
+      <div id="vendor-schedule-list"></div>
+    </div>
+
+    <div class="card">
       <div class="card-title">歷史結算紀錄</div>
       <div style="margin-bottom:12px">
         <button class="btn-add" style="width:100%;height:46px;font-size:17px" onclick="manualSaveHistory()">手動儲存今日紀錄</button>
@@ -378,6 +395,7 @@ let vendors = [];
 let state = {};
 let isSyncing = false;
 let initDone = false;
+let vendorSchedules = {}; // { vendorKey: { 0:{white,whole}, 1:{white,whole}, ... 6:{white,whole} } }
 let settings = { store_white: 15, default_whole_tiao: 6 };
 
 async function saveToFirebase(force = false) {
@@ -465,6 +483,10 @@ async function init() {
     await set(ref(db, 'vendors'), vendors);
   }
 
+  // 取得廠商排程
+  const scSnap = await get(ref(db, 'vendorSchedules'));
+  if (scSnap.exists()) vendorSchedules = scSnap.val();
+
   state = getDefaultState(vendors);
 
   // 取得資料並檢查歸零
@@ -473,15 +495,16 @@ async function init() {
   if (dSnap.exists()) {
     const data = dSnap.val();
     if (data.resetDate !== currentResetDate) {
-      // 歸零
+      // 歸零並套用排程
       state = getDefaultState(vendors);
       state.resetDate = currentResetDate;
+      applyScheduleToState();
       await saveToFirebase();
     } else {
       applyState(data);
-
     }
   } else {
+    applyScheduleToState();
     await saveToFirebase();
   }
 
@@ -857,6 +880,7 @@ window.secretTap = function() {
       adminTab.style.display = 'block';
       switchTab('admin');
       renderVendorMgmt();
+      renderVendorSchedule();
       loadAndRenderHistory();
     }
   } else {
@@ -880,11 +904,76 @@ setInterval(async () => {
     await saveHistory();
     state = getDefaultState(vendors);
     state.resetDate = cur;
+    applyScheduleToState();
     await saveToFirebase();
     renderAll();
     document.getElementById('reset-note').textContent = '資料將於今天凌晨 12:00 自動歸零';
   }
 }, 60000);
+
+const DAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+function applyScheduleToState() {
+  const now = new Date();
+  const dayOfWeek = parseInt(now.toLocaleDateString('zh-TW', { timeZone: TZ, weekday: 'short' }).replace('週','').replace('周','')) || now.getDay();
+  // 取得台北時間今天是星期幾 (0=日~6=六)
+  const taipeiDay = now.toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' });
+  const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const d = dayMap[taipeiDay] ?? now.getDay();
+  vendors.forEach(v => {
+    const key = toKey(v);
+    const sched = vendorSchedules[key]?.[d];
+    if (sched) {
+      state.orders[v] = {
+        white: sched.white || 0,
+        whole: sched.whole || 0
+      };
+    }
+  });
+}
+
+function renderVendorSchedule() {
+  const el = document.getElementById('vendor-schedule-list');
+  if (!el) return;
+  if (vendors.length === 0) {
+    el.innerHTML = '<div class="no-vendor">尚無廠商</div>';
+    return;
+  }
+  el.innerHTML = vendors.map((v, vi) => {
+    const key = toKey(v);
+    const rows = [0,1,2,3,4,5,6].map(d => {
+      const w = vendorSchedules[key]?.[d]?.white || 0;
+      const o = vendorSchedules[key]?.[d]?.whole || 0;
+      return '<div class="schedule-day-row">'
+        + '<div class="schedule-day-label">週' + DAYS[d] + '</div>'
+        + '<div class="schedule-type-label">白</div>'
+        + '<input class="schedule-input qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" value="' + w + '" oninput="saveSchedule(\'' + key + '\',' + d + ',\'white\',this.value)">'
+        + '<div class="schedule-type-label" style="margin-left:8px">全麥</div>'
+        + '<input class="schedule-input qty-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" value="' + o + '" oninput="saveSchedule(\'' + key + '\',' + d + ',\'whole\',this.value)">'
+        + '</div>';
+    }).join('');
+    return '<div class="schedule-vendor">'
+      + '<div class="schedule-vendor-name" onclick="toggleSchedule(' + vi + ')">'
+      + v + '<span id="schedule-arrow-' + vi + '">▶</span></div>'
+      + '<div class="schedule-body" id="schedule-body-' + vi + '">' + rows + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+window.toggleSchedule = function(vi) {
+  const body = document.getElementById('schedule-body-' + vi);
+  const arrow = document.getElementById('schedule-arrow-' + vi);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.textContent = isOpen ? '▶' : '▼';
+};
+
+window.saveSchedule = async function(key, day, type, val) {
+  if (!vendorSchedules[key]) vendorSchedules[key] = {};
+  if (!vendorSchedules[key][day]) vendorSchedules[key][day] = { white: 0, whole: 0 };
+  vendorSchedules[key][day][type] = Math.max(0, parseInt(val) || 0);
+  await set(ref(db, 'vendorSchedules'), vendorSchedules);
+};
 
 window.manualSaveHistory = async function() {
   await saveHistory();
