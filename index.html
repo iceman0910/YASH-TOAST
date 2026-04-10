@@ -989,6 +989,13 @@ async function loadAndRenderHistory() {
 
 init();
 
+// 點進數字輸入框時全選，方便直接輸入新數字
+document.addEventListener('focusin', function(e) {
+  if (e.target.classList.contains('qty-input')) {
+    setTimeout(() => { e.target.select(); }, 0);
+  }
+});
+
 document.addEventListener('touchmove', function(e) {
   if (e.touches.length > 1) e.preventDefault();
 }, { passive: false });
