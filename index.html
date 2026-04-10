@@ -966,18 +966,22 @@ async function loadAndRenderHistory() {
   }
   el.innerHTML = history.map(r => {
     const vendorLines = Object.values(r.vendors || {}).map(v =>
-      `<div class="history-vendor">・${v.name}：白 ${v.white} 條 / 全麥 ${v.whole} 條</div>`
+      '<div class="history-vendor">・' + v.name + '：白 ' + v.white + ' 條 / 全麥 ' + v.whole + ' 條</div>'
     ).join('');
-    const wholeText = r.wholeGuan === 0 ? '不製作' : `${r.wholeGuan} 貫（${r.wholeTiao} 條）`;
-    return `
-      <div class="history-item">
-        <div class="history-date">${r.date}</div>
-        <div class="history-guan">白吐司 ${r.whiteGuan} 貫（${r.whiteTiao} 條）</div>
-        <div class="history-guan">全麥吐司 ${wholeText}</div>
-        <div class="history-detail">剩餘：白 ${r.remainWhite} 條 / 全麥 ${r.remainWhole} 條</div>
-        ${r.extraWhite > 0 || r.extraWhole > 0 ? `<div class="history-detail">臨時：白 ${r.extraWhite} 條 / 全麥 ${r.extraWhole} 條</div>` : ''}
-        ${vendorLines ? `<div class="history-detail" style="margin-top:4px">廠商明細：</div>${vendorLines}` : ''}
-      </div>`;
+    const wholeText = r.wholeGuan === 0 ? '不製作' : r.wholeGuan + ' 貫（' + r.wholeTiao + ' 條）';
+    const extraLine = (r.extraWhite > 0 || r.extraWhole > 0)
+      ? '<div class="history-detail">臨時：白 ' + r.extraWhite + ' 條 / 全麥 ' + r.extraWhole + ' 條</div>'
+      : '';
+    const vendorSection = vendorLines
+      ? '<div class="history-detail" style="margin-top:4px">廠商明細：</div>' + vendorLines
+      : '';
+    return '<div class="history-item">'
+      + '<div class="history-date">' + r.date + '</div>'
+      + '<div class="history-guan">白吐司 ' + r.whiteGuan + ' 貫（' + r.whiteTiao + ' 條）</div>'
+      + '<div class="history-guan">全麥吐司 ' + wholeText + '</div>'
+      + '<div class="history-detail">剩餘：白 ' + r.remainWhite + ' 條 / 全麥 ' + r.remainWhole + ' 條</div>'
+      + extraLine + vendorSection
+      + '</div>';
   }).join('');
 }
 
