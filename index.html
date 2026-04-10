@@ -377,6 +377,7 @@ function toKey(str) {
 let vendors = [];
 let state = {};
 let isSyncing = false;
+let initDone = false;
 let settings = { store_white: 15, default_whole_tiao: 6 };
 
 async function saveToFirebase(force = false) {
@@ -485,6 +486,7 @@ async function init() {
   }
 
   renderAll();
+  initDone = true;
 
   document.getElementById('reset-note').textContent = '資料將於今天凌晨 12:00 自動歸零';
 
@@ -497,7 +499,7 @@ async function init() {
   });
 
   onValue(ref(db, 'vendors'), (snap) => {
-    if (!snap.exists()) return;
+    if (!snap.exists() || !initDone) return;
     vendors = snap.val();
     vendors.forEach(v => {
       if (!state.orders[v]) state.orders[v] = { white: 0, whole: 0 };
@@ -851,6 +853,7 @@ window.secretTap = function() {
     } else {
       adminTab.style.display = 'block';
       switchTab('admin');
+      renderVendorMgmt();
       loadAndRenderHistory();
     }
   } else {
