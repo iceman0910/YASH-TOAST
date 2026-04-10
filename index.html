@@ -891,6 +891,8 @@ window.manualSaveHistory = async function() {
   await loadAndRenderHistory();
   alert('已儲存今日紀錄！');
 };
+
+async function saveHistory() {
   // 計算當天結算數量
   let tw = 0, to = 0;
   vendors.forEach(v => {
