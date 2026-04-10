@@ -495,7 +495,9 @@ async function init() {
   if (dSnap.exists()) {
     const data = dSnap.val();
     if (data.resetDate !== currentResetDate) {
-      // 歸零並套用排程
+      // 先還原昨天的資料，再存歷史紀錄，最後歸零
+      applyState(data);
+      await saveHistory();
       state = getDefaultState(vendors);
       state.resetDate = currentResetDate;
       applyScheduleToState();
