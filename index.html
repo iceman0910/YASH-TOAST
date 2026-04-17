@@ -799,18 +799,31 @@ window.saveEditVendor = async function(i) {
   renderVendorMgmt();
 };
 
+function updateVendorCardColor(v) {
+  const vid = v.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
+  const card = document.getElementById('v_' + vid + '_white')?.closest('.card');
+  if (!card) return;
+  const w = state.orders[v]?.white || 0;
+  const o = state.orders[v]?.whole || 0;
+  const hasOrder = w > 0 || o > 0;
+  card.style.background = hasOrder ? 'var(--card-active-bg)' : '';
+  card.style.border = hasOrder ? '1px solid var(--card-active-border)' : '';
+}
+
 window.adjVendor = function(v, type, d) {
   if (!state.orders[v]) state.orders[v] = { white: 0, whole: 0 };
   state.orders[v][type] = Math.max(0, (state.orders[v][type] || 0) + d);
   const vid = v.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
   const el = document.getElementById(`v_${vid}_${type}`);
   if (el) el.value = state.orders[v][type];
+  updateVendorCardColor(v);
   saveData();
 };
 
 window.setVendor = function(v, type, val) {
   if (!state.orders[v]) state.orders[v] = { white: 0, whole: 0 };
   state.orders[v][type] = Math.max(0, parseInt(val) || 0);
+  updateVendorCardColor(v);
   saveData();
 };
 
