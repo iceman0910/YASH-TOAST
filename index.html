@@ -378,6 +378,7 @@
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, onValue, set, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyB63VmNeta7bMhqBkm69liZ7Xf0ks0_HFM",
@@ -391,6 +392,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
 
 const TZ = 'Asia/Taipei';
 
@@ -1150,7 +1152,11 @@ window.deleteHistory = async function(i) {
   await loadAndRenderHistory();
 };
 
-init();
+// 匿名登入後再初始化
+signInAnonymously(auth).catch(err => console.error('Auth error:', err));
+onAuthStateChanged(auth, user => {
+  if (user && !initDone) init();
+});
 
 // 點進數字輸入框時全選，方便直接輸入新數字
 document.addEventListener('focusin', function(e) {
