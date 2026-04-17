@@ -26,6 +26,8 @@
     --danger-border: rgba(185,48,48,0.3);
     --radius: 10px;
     --radius-lg: 14px;
+    --card-active-bg: #e8f4fd;
+    --card-active-border: #90caf9;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -42,6 +44,8 @@
       --danger-bg: #3a1a1a;
       --danger: #e07070;
       --danger-border: rgba(224,112,112,0.3);
+      --card-active-bg: #1a2a3a;
+      --card-active-border: #4a8ab5;
     }
   }
 
@@ -595,8 +599,12 @@ function renderVendorInputs() {
     const w = state.orders[v]?.white || 0;
     const o = state.orders[v]?.whole || 0;
     const vid = v.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
+    const hasOrder = w > 0 || o > 0;
+    const cardStyle = hasOrder
+      ? 'background:var(--card-active-bg); border:1px solid var(--card-active-border);'
+      : '';
     return `
-    <div class="card">
+    <div class="card" style="${cardStyle}">
       <div class="vendor-name-label">${v}</div>
       <div class="field-row">
         <div class="field-label">白吐司</div>
