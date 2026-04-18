@@ -413,7 +413,18 @@ function getTaipeiHour() {
 }
 
 function getResetDate() {
-  // 凌晨0點後算新的一天
+  const now = new Date();
+  const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' });
+  const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const d = dayMap[dayOfWeek];
+  // 週日（0）時沿用週六的日期，讓週六資料繼續保留不重置
+  if (d === 0) {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toLocaleDateString('zh-TW', {
+      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+  }
   return getTaipeiDateStr();
 }
 
@@ -552,7 +563,7 @@ async function init() {
   renderAll();
   initDone = true;
 
-  document.getElementById('reset-note').textContent = '資料將於今天凌晨 12:00 自動歸零';
+  document.getElementById('reset-note').textContent = getResetNoteText();
 
   // 即時監聽 Firebase 資料變動（其他手機更新時同步）
   onValue(ref(db, 'data'), (snap) => {
@@ -980,6 +991,13 @@ window.switchTab = function(tab) {
   }
 };
 
+function getResetNoteText() {
+  const day = new Date().toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' });
+  if (day === 'Sun') return '今日店休，資料將於明天（週一）凌晨 12:00 自動歸零';
+  if (day === 'Sat') return '週六資料將於週日凌晨 12:00 後重置';
+  return '資料將於今天凌晨 12:00 自動歸零';
+}
+
 // 每分鐘檢查歸零
 setInterval(async () => {
   const cur = getResetDate();
@@ -990,7 +1008,7 @@ setInterval(async () => {
     applyScheduleToState();
     await saveToFirebase();
     renderAll();
-    document.getElementById('reset-note').textContent = '資料將於今天凌晨 12:00 自動歸零';
+    document.getElementById('reset-note').textContent = getResetNoteText();
   }
 }, 60000);
 
