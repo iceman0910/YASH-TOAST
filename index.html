@@ -1356,24 +1356,23 @@ window.calcDough = function() {
       const mode = item.calcMode || 'combined';
 
       if (mode === 'individual') {
-        // 各 subItem 各自查 rules，加總後取 max(minDough)
         let total = 0;
         item.subItems.forEach((s, si) => {
           const val = parseInt(document.getElementById('d_' + i + '_' + si)?.value) || 0;
           const capped = Math.min(val, 4);
-          // key 可能是字串，用 String() 轉換確保找得到
           total += (item.rules[capped] ?? item.rules[String(capped)] ?? 0);
         });
-        dough = Math.max(item.minDough || 0, total);
+        // minDough 只在需要退冰時才套用
+        dough = total > 0 ? Math.max(item.minDough || 0, total) : 0;
       } else {
-        // 合併所有 subItem 的數量，查一次 rules
         let totalRemain = 0;
         item.subItems.forEach((s, si) => {
           totalRemain += parseInt(document.getElementById('d_' + i + '_' + si)?.value) || 0;
         });
         const capped = Math.min(totalRemain, 4);
-        dough = item.rules[capped] ?? item.rules[String(capped)] ?? 0;
-        dough = Math.max(item.minDough || 0, dough);
+        const ruleVal = item.rules[capped] ?? item.rules[String(capped)] ?? 0;
+        // minDough 只在需要退冰時才套用
+        dough = ruleVal > 0 ? Math.max(item.minDough || 0, ruleVal) : 0;
       }
     }
 
