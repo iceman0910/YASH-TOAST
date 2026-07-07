@@ -1102,9 +1102,9 @@ function getDefaultDoughConfig() {
     {
       id: 'rye', name: '裸麥麵糰',
       subItems: ['裸麥起士', '裸麥核桃'],
-      calcMode: 'individual',
+      calcMode: 'combined',
       minDough: 2,
-      rules: { '0': 2, '1': 2, '2': 1, '3': 0, '4': 0 },
+      rules: { '0': 2, '1': 2, '2': 1, '3': 1, '4': 0, '5': 0 },
       satFixed: 4, friOff: true, sunOff: true
     }
   ];
@@ -1151,13 +1151,17 @@ function renderDoughAdmin() {
       + '<div style="display:flex;gap:8px;margin-bottom:14px" id="calcmode_' + i + '"></div>'
 
       + '<div style="font-size:14px;color:var(--text2);margin-bottom:8px">週一～四剩餘對照表</div>'
-      + [0,1,2,3,4].map(r =>
-          '<div class="schedule-day-row">'
+      + '<div id="drules_container_' + i + '">'
+      + Object.keys(item.rules).sort((a,b) => Number(a)-Number(b)).map(r =>
+          '<div class="schedule-day-row" id="drule_row_' + i + '_' + r + '">'
           + '<div class="schedule-day-label" style="width:48px;font-size:15px">剩 ' + r + ' 個</div>'
           + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" id="drule_' + i + '_' + r + '" value="' + (item.rules[String(r)] ?? 0) + '" style="width:56px">'
           + '<div style="font-size:14px;color:var(--text3);margin-left:6px">顆</div>'
+          + (Number(r) > 0 ? '<button class="btn-del" style="margin-left:8px;height:32px;padding:0 10px;font-size:13px" onclick="removeDoughRuleRow(' + i + ',' + r + ')">✕</button>' : '')
           + '</div>'
         ).join('')
+      + '</div>'
+      + '<button class="btn-add" style="width:100%;height:36px;font-size:14px;margin-bottom:14px" onclick="addDoughRuleRow(' + i + ')">＋ 新增剩餘數量區間</button>'
 
       + '<div class="field-row" style="margin-top:12px">'
       + '<div class="field-label" style="font-size:15px">最少退冰顆數</div>'
@@ -1193,6 +1197,29 @@ function renderDoughAdmin() {
     });
   });
 }
+
+window.addDoughRuleRow = function(i) {
+  const keys = Object.keys(doughConfig[i].rules).map(Number).sort((a,b) => a-b);
+  const nextKey = String(keys[keys.length - 1] + 1);
+  doughConfig[i].rules[nextKey] = 0;
+  const container = document.getElementById('drules_container_' + i);
+  if (!container) return;
+  const row = document.createElement('div');
+  row.className = 'schedule-day-row';
+  row.id = 'drule_row_' + i + '_' + nextKey;
+  row.innerHTML =
+    '<div class="schedule-day-label" style="width:48px;font-size:15px">剩 ' + nextKey + ' 個</div>'
+    + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" id="drule_' + i + '_' + nextKey + '" value="0" style="width:56px">'
+    + '<div style="font-size:14px;color:var(--text3);margin-left:6px">顆</div>'
+    + '<button class="btn-del" style="margin-left:8px;height:32px;padding:0 10px;font-size:13px" onclick="removeDoughRuleRow(' + i + ',' + nextKey + ')">✕</button>';
+  container.appendChild(row);
+};
+
+window.removeDoughRuleRow = function(i, r) {
+  delete doughConfig[i].rules[String(r)];
+  const row = document.getElementById('drule_row_' + i + '_' + r);
+  if (row) row.remove();
+};
 
 window.resetDoughConfig = async function() {
   if (!confirm('確定要重置為預設設定嗎？所有自訂的退冰邏輯都會清除。')) return;
@@ -1264,11 +1291,13 @@ window.saveDoughItem = async function(i) {
     return el ? el.value.trim() || s : s;
   });
 
-  // rules
-  [0,1,2,3,4].forEach(r => {
+  // rules - 讀取所有動態 key
+  const newRules = {};
+  Object.keys(doughConfig[i].rules).forEach(r => {
     const el = document.getElementById('drule_' + i + '_' + r);
-    if (el) doughConfig[i].rules[String(r)] = Math.max(0, parseInt(el.value) || 0);
+    if (el) newRules[String(r)] = Math.max(0, parseInt(el.value) || 0);
   });
+  doughConfig[i].rules = newRules;
 
   // minDough, satFixed
   const minEl = document.getElementById('dmin_' + i);
@@ -1304,7 +1333,7 @@ function renderDoughTab() {
       '<div class="field-row">'
       + '<div class="field-label">' + s + '剩餘</div>'
       + '<select class="dough-select" id="d_' + i + '_' + si + '" onchange="calcDough()">'
-      + [0,1,2,3,4].map(n => '<option value="' + n + '">' + n + ' 個</option>').join('')
+      + Array.from({length: Math.max(...Object.keys(item.rules).map(Number)) + 1}, (_,n) => '<option value="' + n + '">' + n + ' 個</option>').join('')
       + '</select></div>'
     ).join('');
     card.innerHTML = '<div class="card-title">' + item.name + '</div>'
@@ -1359,19 +1388,19 @@ window.calcDough = function() {
         let total = 0;
         item.subItems.forEach((s, si) => {
           const val = parseInt(document.getElementById('d_' + i + '_' + si)?.value) || 0;
-          const capped = Math.min(val, 4);
+          const maxKey = Math.max(...Object.keys(item.rules).map(Number));
+          const capped = Math.min(val, maxKey);
           total += (item.rules[capped] ?? item.rules[String(capped)] ?? 0);
         });
-        // minDough 只在需要退冰時才套用
         dough = total > 0 ? Math.max(item.minDough || 0, total) : 0;
       } else {
         let totalRemain = 0;
         item.subItems.forEach((s, si) => {
           totalRemain += parseInt(document.getElementById('d_' + i + '_' + si)?.value) || 0;
         });
-        const capped = Math.min(totalRemain, 4);
+        const maxKey = Math.max(...Object.keys(item.rules).map(Number));
+        const capped = Math.min(totalRemain, maxKey);
         const ruleVal = item.rules[capped] ?? item.rules[String(capped)] ?? 0;
-        // minDough 只在需要退冰時才套用
         dough = ruleVal > 0 ? Math.max(item.minDough || 0, ruleVal) : 0;
       }
     }
