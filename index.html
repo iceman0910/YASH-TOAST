@@ -198,14 +198,23 @@
 </head>
 <body>
 <div class="app">
-  <div class="header" style="position:relative">
+  <div class="header" style="position:relative; padding-right: 90px;">
     <h1>🍞 雅式吐司計算</h1>
     <div class="date" id="date-display"></div>
-    <div id="secret-zone" onclick="secretTap()" style="
-      position:absolute; top:0; right:0;
-      width:64px; height:64px;
-      cursor:default; -webkit-tap-highlight-color:transparent;
-    "></div>
+    <div style="position:absolute; top:12px; right:12px; display:flex; gap:6px;">
+      <button onclick="toggleAdmin('toast')" title="吐司管理" style="
+        width:38px; height:38px; font-size:20px; border:0.5px solid var(--border2);
+        border-radius:var(--radius); background:var(--bg2); color:var(--text);
+        cursor:pointer; -webkit-tap-highlight-color:transparent;
+        display:flex; align-items:center; justify-content:center;
+      ">🍞</button>
+      <button onclick="toggleAdmin('dough')" title="麵糰管理" style="
+        width:38px; height:38px; font-size:20px; border:0.5px solid var(--border2);
+        border-radius:var(--radius); background:var(--bg2); color:var(--text);
+        cursor:pointer; -webkit-tap-highlight-color:transparent;
+        display:flex; align-items:center; justify-content:center;
+      ">⚙️</button>
+    </div>
   </div>
 
   <div class="tabs">
@@ -308,83 +317,19 @@
 
   <!-- 退冰計算 -->
   <div id="tab-dough" class="tab-content">
-
-    <div class="card">
-      <div class="card-title">法國麵糰</div>
-      <div style="font-size:13px;color:var(--text3);margin-bottom:12px">法國麵糰 ＋ 蔓越莓法國（合併計算）</div>
-      <div class="field-row">
-        <div class="field-label">法國麵包剩餘</div>
-        <select class="dough-select" id="d_french" onchange="calcDough()">
-          <option value="0">0 個</option>
-          <option value="1">1 個</option>
-          <option value="2">2 個</option>
-          <option value="3">3 個</option>
-          <option value="4">4 個</option>
-        </select>
-      </div>
-      <div class="field-row">
-        <div class="field-label">蔓越莓法國剩餘</div>
-        <select class="dough-select" id="d_cranberry_french" onchange="calcDough()">
-          <option value="0">0 個</option>
-          <option value="1">1 個</option>
-          <option value="2">2 個</option>
-          <option value="3">3 個</option>
-          <option value="4">4 個</option>
-        </select>
-      </div>
-      <div class="dough-result" id="result_french"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">黑糖蔓越莓核桃</div>
-      <div class="field-row">
-        <div class="field-label">剩餘數量</div>
-        <select class="dough-select" id="d_blacksugar" onchange="calcDough()">
-          <option value="0">0 個</option>
-          <option value="1">1 個</option>
-          <option value="2">2 個</option>
-          <option value="3">3 個</option>
-          <option value="4">4 個</option>
-        </select>
-      </div>
-      <div class="dough-result" id="result_blacksugar"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">裸麥麵糰</div>
-      <div style="font-size:13px;color:var(--text3);margin-bottom:12px">裸麥起士 ＋ 裸麥核桃（分開輸入，合併計算）</div>
-      <div class="field-row">
-        <div class="field-label">裸麥起士剩餘</div>
-        <select class="dough-select" id="d_rye_cheese" onchange="calcDough()">
-          <option value="0">0 個</option>
-          <option value="1">1 個</option>
-          <option value="2">2 個</option>
-          <option value="3">3 個</option>
-          <option value="4">4 個</option>
-        </select>
-      </div>
-      <div class="field-row">
-        <div class="field-label">裸麥核桃剩餘</div>
-        <select class="dough-select" id="d_rye_walnut" onchange="calcDough()">
-          <option value="0">0 個</option>
-          <option value="1">1 個</option>
-          <option value="2">2 個</option>
-          <option value="3">3 個</option>
-          <option value="4">4 個</option>
-        </select>
-      </div>
-      <div class="dough-result" id="result_rye"></div>
-    </div>
-
     <div class="card" style="background:var(--bg2)">
       <div style="font-size:16px;color:var(--text2);margin-bottom:8px" id="dough-day-note"></div>
       <div style="font-size:14px;color:var(--text3)" id="dough-note"></div>
     </div>
   </div>
 
-  <!-- 管理模式（隱藏，右上角連點3下開啟） -->
+  <!-- 管理模式（右上角🍞按鈕開啟） -->
   <div id="admin-tab" style="display:none">
   <div id="tab-admin" class="tab-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 4px 4px">
+      <div style="font-size:20px;font-weight:600;color:var(--text)">🍞 吐司管理模式</div>
+      <button onclick="toggleAdmin('toast')" style="font-size:14px;color:var(--text2);background:none;border:none;cursor:pointer;padding:4px 8px;">✕ 關閉</button>
+    </div>
     <div class="card">
       <div class="card-title">預設數量設定</div>
       <div class="field-row">
@@ -434,6 +379,27 @@
       </div>
       <div id="history-list"><div class="no-vendor">尚無歷史紀錄</div></div>
     </div>
+  </div>
+  </div>
+
+  <!-- 麵糰管理模式（右上角⚙️按鈕開啟） -->
+  <div id="dough-admin-tab" style="display:none">
+  <div id="tab-dough-admin" class="tab-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 4px 4px">
+      <div style="font-size:20px;font-weight:600;color:var(--text)">⚙️ 麵糰管理模式</div>
+      <button onclick="toggleAdmin('dough')" style="font-size:14px;color:var(--text2);background:none;border:none;cursor:pointer;padding:4px 8px;">✕ 關閉</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">新增麵糰品項</div>
+      <div class="admin-input-row" style="margin-bottom:8px">
+        <input class="admin-input" type="text" id="new-dough-name" placeholder="麵糰名稱">
+        <button class="btn-add" onclick="addDoughItem()">新增</button>
+      </div>
+      <div class="error-msg" id="dough-error">請輸入名稱，且不能重複</div>
+    </div>
+
+    <div id="dough-admin-list"></div>
   </div>
   </div>
 </div>
@@ -613,6 +579,15 @@ async function init() {
   }
   applySettingsToUI();
 
+  // 取得麵糰設定
+  const dcSnap = await get(ref(db, 'doughConfig'));
+  if (dcSnap.exists()) {
+    doughConfig = dcSnap.val();
+  } else {
+    doughConfig = getDefaultDoughConfig();
+    await set(ref(db, 'doughConfig'), doughConfig);
+  }
+
   // 取得廠商列表
   const vSnap = await get(ref(db, 'vendors'));
   if (vSnap.exists()) {
@@ -650,6 +625,7 @@ async function init() {
   }
 
   renderAll();
+  renderDoughTab();
   initDone = true;
 
   document.getElementById('reset-note').textContent = getResetNoteText();
@@ -1046,42 +1022,213 @@ window.removeVendor = async function(v) {
   renderAll();
 };
 
-let secretTapCount = 0;
-let secretTapTimer = null;
+let doughConfig = []; // 從 Firebase 載入的麵糰設定
 
-window.secretTap = function() {
-  secretTapCount++;
-  clearTimeout(secretTapTimer);
-  if (secretTapCount >= 3) {
-    secretTapCount = 0;
-    const adminTab = document.getElementById('admin-tab');
-    const isVisible = adminTab.style.display !== 'none';
-    if (isVisible) {
-      adminTab.style.display = 'none';
-      switchTab('main');
-    } else {
-      adminTab.style.display = 'block';
+window.toggleAdmin = function(type) {
+  const toastTab = document.getElementById('admin-tab');
+  const doughTab = document.getElementById('dough-admin-tab');
+
+  if (type === 'toast') {
+    const isOpen = toastTab.style.display !== 'none';
+    toastTab.style.display = isOpen ? 'none' : 'block';
+    doughTab.style.display = 'none';
+    if (!isOpen) {
       switchTab('admin');
       renderVendorMgmt();
       renderVendorSchedule();
       loadAndRenderHistory();
+    } else {
+      switchTab('main');
     }
   } else {
-    secretTapTimer = setTimeout(() => { secretTapCount = 0; }, 1500);
+    const isOpen = doughTab.style.display !== 'none';
+    doughTab.style.display = isOpen ? 'none' : 'block';
+    toastTab.style.display = 'none';
+    if (!isOpen) {
+      switchTab('dough-admin');
+      renderDoughAdmin();
+    } else {
+      switchTab('dough');
+    }
   }
 };
 
 window.switchTab = function(tab) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.classList.add('active');
   const tabs = ['main', 'dough'];
   const idx = tabs.indexOf(tab);
   if (idx >= 0) document.querySelectorAll('.tab')[idx].classList.add('active');
   if (tab === 'dough') calcDough();
 };
 
-function getTaipeiDayOfWeek() {
+function getDefaultDoughConfig() {
+  return [
+    {
+      id: 'french', name: '法國麵糰',
+      subItems: ['法國麵包', '蔓越莓法國'],
+      minDough: 0,
+      rules: { 0: 6, 1: 5, 2: 5, 3: 4, 4: 4 },
+      satFixed: 6, friOff: true, sunOff: true
+    },
+    {
+      id: 'blacksugar', name: '黑糖蔓越莓核桃',
+      subItems: ['黑糖蔓越莓核桃'],
+      minDough: 2,
+      rules: { 0: 2, 1: 2, 2: 2, 3: 0, 4: 0 },
+      satFixed: 2, friOff: true, sunOff: true
+    },
+    {
+      id: 'rye', name: '裸麥麵糰',
+      subItems: ['裸麥起士', '裸麥核桃'],
+      minDough: 2,
+      rules: { 0: 2, 1: 2, 2: 1, 3: 0, 4: 0 },
+      satFixed: 4, friOff: true, sunOff: true
+    }
+  ];
+}
+
+async function saveDoughConfig() {
+  await set(ref(db, 'doughConfig'), doughConfig);
+  calcDough();
+}
+
+function renderDoughAdmin() {
+  const el = document.getElementById('dough-admin-list');
+  if (!el) return;
+  if (doughConfig.length === 0) {
+    el.innerHTML = '<div class="no-vendor" style="padding:20px 12px">尚無麵糰品項</div>';
+    return;
+  }
+  el.innerHTML = doughConfig.map((item, i) => {
+    const ruleRows = [0,1,2,3,4].map(r =>
+      '<div class="schedule-day-row">'
+      + '<div class="schedule-day-label" style="width:48px;font-size:15px">剩 ' + r + ' 個</div>'
+      + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.rules[r] || 0) + '" style="width:56px" oninput="updateDoughRule(' + i + ',' + r + ',this.value)">'
+      + '<div style="font-size:14px;color:var(--text3);margin-left:6px">顆</div>'
+      + '</div>'
+    ).join('');
+    const subRows = item.subItems.map((s, si) =>
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+      + '<input class="admin-input" style="flex:1;height:38px;font-size:16px" value="' + s + '" oninput="updateDoughSubItem(' + i + ',' + si + ',this.value)">'
+      + (item.subItems.length > 1 ? '<button class="btn-del" onclick="removeDoughSubItem(' + i + ',' + si + ')">移除</button>' : '')
+      + '</div>'
+    ).join('');
+    return '<div class="card" style="margin-bottom:12px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+      + '<input class="admin-input" style="flex:1;height:40px;font-size:18px;font-weight:600;margin-right:8px" value="' + item.name + '" oninput="updateDoughName(' + i + ',this.value)">'
+      + '<button class="btn-del" onclick="removeDoughItem(' + i + ')">刪除</button>'
+      + '</div>'
+      + '<div style="font-size:14px;color:var(--text2);margin-bottom:6px">食材品項（合併計算）</div>'
+      + subRows
+      + '<button class="btn-add" style="margin-bottom:14px;width:100%;height:36px;font-size:14px" onclick="addDoughSubItem(' + i + ')">＋ 新增品項</button>'
+      + '<div style="font-size:14px;color:var(--text2);margin-bottom:8px">週一～四剩餘對照表</div>'
+      + ruleRows
+      + '<div class="field-row" style="margin-top:12px">'
+      + '<div class="field-label" style="font-size:15px">最少退冰顆數</div>'
+      + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.minDough || 0) + '" oninput="updateDoughMin(' + i + ',this.value)">'
+      + '</div>'
+      + '<div class="field-row">'
+      + '<div class="field-label" style="font-size:15px">週六固定退冰</div>'
+      + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.satFixed || 0) + '" oninput="updateDoughSat(' + i + ',this.value)">'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+window.addDoughItem = async function() {
+  const inp = document.getElementById('new-dough-name');
+  const errEl = document.getElementById('dough-error');
+  const name = inp.value.trim();
+  if (!name || doughConfig.find(d => d.name === name)) {
+    errEl.classList.add('show'); return;
+  }
+  errEl.classList.remove('show');
+  doughConfig.push({
+    id: 'custom_' + Date.now(), name,
+    subItems: [name], minDough: 0,
+    rules: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 },
+    satFixed: 0, friOff: true, sunOff: true
+  });
+  await saveDoughConfig();
+  inp.value = '';
+  renderDoughAdmin();
+  renderDoughTab();
+};
+
+window.removeDoughItem = async function(i) {
+  if (!confirm('確定要刪除「' + doughConfig[i].name + '」嗎？')) return;
+  doughConfig.splice(i, 1);
+  await saveDoughConfig();
+  renderDoughAdmin();
+  renderDoughTab();
+};
+
+window.updateDoughName = function(i, val) {
+  doughConfig[i].name = val;
+  saveDoughConfig();
+};
+window.updateDoughSubItem = function(i, si, val) {
+  doughConfig[i].subItems[si] = val;
+  saveDoughConfig();
+  renderDoughTab();
+};
+window.addDoughSubItem = async function(i) {
+  doughConfig[i].subItems.push('新品項');
+  await saveDoughConfig();
+  renderDoughAdmin();
+  renderDoughTab();
+};
+window.removeDoughSubItem = async function(i, si) {
+  doughConfig[i].subItems.splice(si, 1);
+  await saveDoughConfig();
+  renderDoughAdmin();
+  renderDoughTab();
+};
+window.updateDoughRule = function(i, remain, val) {
+  doughConfig[i].rules[remain] = Math.max(0, parseInt(val) || 0);
+  saveDoughConfig();
+};
+window.updateDoughMin = function(i, val) {
+  doughConfig[i].minDough = Math.max(0, parseInt(val) || 0);
+  saveDoughConfig();
+};
+window.updateDoughSat = function(i, val) {
+  doughConfig[i].satFixed = Math.max(0, parseInt(val) || 0);
+  saveDoughConfig();
+};
+
+function renderDoughTab() {
+  const container = document.getElementById('tab-dough');
+  if (!container) return;
+  // 保留最後的日期提示 card，只重建麵糰卡片
+  const noteCard = document.getElementById('dough-day-note')?.closest('.card');
+  // 移除所有舊的麵糰卡片
+  container.querySelectorAll('.dough-item-card').forEach(el => el.remove());
+
+  doughConfig.forEach((item, i) => {
+    const card = document.createElement('div');
+    card.className = 'card dough-item-card';
+    card.style.marginBottom = '12px';
+    const subSelects = item.subItems.map((s, si) =>
+      '<div class="field-row">'
+      + '<div class="field-label">' + s + '剩餘</div>'
+      + '<select class="dough-select" id="d_' + i + '_' + si + '" onchange="calcDough()">'
+      + [0,1,2,3,4].map(n => '<option value="' + n + '">' + n + ' 個</option>').join('')
+      + '</select></div>'
+    ).join('');
+    card.innerHTML = '<div class="card-title">' + item.name + '</div>'
+      + (item.subItems.length > 1 ? '<div style="font-size:13px;color:var(--text3);margin-bottom:12px">' + item.subItems.join('＋') + '（合併計算）</div>' : '')
+      + subSelects
+      + '<div class="dough-result" id="result_' + i + '"></div>';
+    if (noteCard) container.insertBefore(card, noteCard);
+    else container.appendChild(card);
+  });
+}
+
+
   const day = new Date().toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' });
   return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[day];
 }
@@ -1091,106 +1238,45 @@ window.calcDough = function() {
   const dayNames = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
   const dayNote = document.getElementById('dough-day-note');
   const note = document.getElementById('dough-note');
-
-  // 退冰後隔天是哪天
   const nextDay = dow === 6 ? 1 : dow + 1;
-  dayNote.textContent = '今天 ' + dayNames[dow] + '，退冰供明天（' + dayNames[nextDay] + '）使用';
+  if (dayNote) dayNote.textContent = '今天 ' + dayNames[dow] + '，退冰供明天（' + dayNames[nextDay] + '）使用';
 
-  const french = parseInt(document.getElementById('d_french').value) || 0;
-  const cranberryFrench = parseInt(document.getElementById('d_cranberry_french').value) || 0;
-  const blacksugar = parseInt(document.getElementById('d_blacksugar').value) || 0;
-  const ryeCheese = parseInt(document.getElementById('d_rye_cheese').value) || 0;
-  const ryeWalnut = parseInt(document.getElementById('d_rye_walnut').value) || 0;
+  const isFri = dow === 5;
+  const isSat = dow === 6;
+  const isSun = dow === 0;
 
-  const totalFrench = french + cranberryFrench;
-  const totalRye1 = ryeCheese;
-  const totalRye2 = ryeWalnut;
+  doughConfig.forEach((item, i) => {
+    const resultEl = document.getElementById('result_' + i);
+    if (!resultEl) return;
+    resultEl.style.display = 'block';
 
-  let frenchDough = 0, blacksugarDough = 0, ryeDough = 0;
-  let frenchNote = '', blacksugarNote = '', ryeNote = '';
+    if (isFri || isSun) {
+      resultEl.style.color = 'var(--text3)';
+      resultEl.textContent = isFri ? '週五不退冰' : '週日店休不退冰';
+      return;
+    }
 
-  if (dow >= 1 && dow <= 4) {
-    // 週一～週四
-    // 法國
-    if (totalFrench === 0) frenchDough = 6;
-    else if (totalFrench <= 2) frenchDough = 5;
-    else frenchDough = 0;
+    let dough = 0;
+    if (isSat) {
+      dough = item.satFixed || 0;
+    } else {
+      // 週一～四：各 subItem 各自查 rules，加總後取 max(minDough)
+      let total = 0;
+      item.subItems.forEach((s, si) => {
+        const val = parseInt(document.getElementById('d_' + i + '_' + si)?.value) || 0;
+        const capped = Math.min(val, 4);
+        total += (item.rules[capped] ?? 0);
+      });
+      dough = Math.max(item.minDough || 0, total);
+    }
 
-    // 黑糖蔓越莓核桃
-    if (blacksugar <= 2) blacksugarDough = 2;
-    else blacksugarDough = 0;
+    resultEl.style.color = dough > 0 ? 'var(--success)' : 'var(--text2)';
+    resultEl.textContent = dough > 0 ? '退冰 ' + dough + ' 顆' : '不需退冰';
+  });
 
-    // 裸麥（各自判斷再加總，最少2顆）
-    let rye1 = 0, rye2 = 0;
-    if (totalRye1 === 1) rye1 = 2;
-    else if (totalRye1 === 2) rye1 = 1;
-    else rye1 = 0;
-    if (totalRye2 === 1) rye2 = 2;
-    else if (totalRye2 === 2) rye2 = 1;
-    else rye2 = 0;
-    ryeDough = Math.max(2, rye1 + rye2);
-
-  } else if (dow === 5) {
-    // 週五不退
-    frenchDough = 0;
-    blacksugarDough = 0;
-    ryeDough = 0;
-    frenchNote = '週五不退冰';
-    blacksugarNote = '週五不退冰';
-    ryeNote = '週五不退冰';
-
-  } else if (dow === 6) {
-    // 週六固定
-    frenchDough = 6;
-    blacksugarDough = 2;
-    ryeDough = 4;
-
-  } else {
-    // 週日不退
-    frenchDough = 0;
-    blacksugarDough = 0;
-    ryeDough = 0;
-    frenchNote = '週日店休不退冰';
-    blacksugarNote = '週日店休不退冰';
-    ryeNote = '週日店休不退冰';
+  if (note) {
+    note.textContent = isSat ? '週六退冰供週一使用' : '';
   }
-
-  // 顯示法國
-  const frenchEl = document.getElementById('result_french');
-  frenchEl.style.display = 'block';
-  if (frenchNote) {
-    frenchEl.style.color = 'var(--text3)';
-    frenchEl.textContent = frenchNote;
-  } else {
-    frenchEl.style.color = frenchDough > 0 ? 'var(--success)' : 'var(--text2)';
-    frenchEl.textContent = frenchDough > 0 ? '退冰 ' + frenchDough + ' 顆' : '不需退冰';
-  }
-
-  // 顯示黑糖
-  const blackEl = document.getElementById('result_blacksugar');
-  blackEl.style.display = 'block';
-  if (blacksugarNote) {
-    blackEl.style.color = 'var(--text3)';
-    blackEl.textContent = blacksugarNote;
-  } else {
-    blackEl.style.color = blacksugarDough > 0 ? 'var(--success)' : 'var(--text2)';
-    blackEl.textContent = blacksugarDough > 0 ? '退冰 ' + blacksugarDough + ' 顆' : '不需退冰';
-  }
-
-  // 顯示裸麥
-  const ryeEl = document.getElementById('result_rye');
-  ryeEl.style.display = 'block';
-  if (ryeNote) {
-    ryeEl.style.color = 'var(--text3)';
-    ryeEl.textContent = ryeNote;
-  } else {
-    ryeEl.style.color = ryeDough > 0 ? 'var(--success)' : 'var(--text2)';
-    ryeEl.textContent = ryeDough > 0 ? '退冰 ' + ryeDough + ' 顆' : '不需退冰';
-  }
-
-  note.textContent = dow >= 1 && dow <= 4
-    ? '裸麥麵糰兩種合計最少退冰 2 顆'
-    : dow === 6 ? '週六退冰供週一使用' : '';
 };
 
 function getResetNoteText() {
