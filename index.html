@@ -582,7 +582,14 @@ async function init() {
   // 取得麵糰設定
   const dcSnap = await get(ref(db, 'doughConfig'));
   if (dcSnap.exists()) {
-    doughConfig = dcSnap.val();
+    const raw = dcSnap.val();
+    doughConfig = Array.isArray(raw) ? raw : Object.values(raw);
+    // 確保 rules 是物件格式
+    doughConfig = doughConfig.map(item => ({
+      ...item,
+      rules: item.rules || {},
+      subItems: Array.isArray(item.subItems) ? item.subItems : Object.values(item.subItems || {})
+    }));
   } else {
     doughConfig = getDefaultDoughConfig();
     await set(ref(db, 'doughConfig'), doughConfig);
@@ -1091,7 +1098,8 @@ function getDefaultDoughConfig() {
 }
 
 async function saveDoughConfig() {
-  await set(ref(db, 'doughConfig'), doughConfig);
+  // 存為純陣列避免 Firebase 轉物件問題
+  await set(ref(db, 'doughConfig'), doughConfig.map(item => ({...item})));
   calcDough();
 }
 
