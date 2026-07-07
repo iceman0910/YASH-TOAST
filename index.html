@@ -1168,6 +1168,12 @@ function renderDoughAdmin() {
       + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" id="dmin_' + i + '" value="' + (item.minDough || 0) + '">'
       + '</div>'
 
+      + '<div class="field-row" style="margin-bottom:4px">'
+      + '<div class="field-label" style="font-size:15px">最多退冰顆數</div>'
+      + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" id="dmax_' + i + '" value="' + (item.maxDough ?? 99) + '">'
+      + '</div>'
+      + '<div style="font-size:13px;color:var(--text3);margin-bottom:14px;padding-left:2px">設 0 = 不限制</div>'
+
       + '<div class="field-row" style="margin-bottom:14px">'
       + '<div class="field-label" style="font-size:15px">週六固定退冰</div>'
       + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" id="dsat_' + i + '" value="' + (item.satFixed || 0) + '">'
@@ -1301,8 +1307,10 @@ window.saveDoughItem = async function(i) {
 
   // minDough, satFixed
   const minEl = document.getElementById('dmin_' + i);
+  const maxEl = document.getElementById('dmax_' + i);
   const satEl = document.getElementById('dsat_' + i);
   if (minEl) doughConfig[i].minDough = Math.max(0, parseInt(minEl.value) || 0);
+  if (maxEl) doughConfig[i].maxDough = Math.max(0, parseInt(maxEl.value) || 0);
   if (satEl) doughConfig[i].satFixed = Math.max(0, parseInt(satEl.value) || 0);
 
   await set(ref(db, 'doughConfig'), doughConfig.map(item => ({...item})));
@@ -1403,6 +1411,9 @@ window.calcDough = function() {
         const ruleVal = item.rules[capped] ?? item.rules[String(capped)] ?? 0;
         dough = ruleVal > 0 ? Math.max(item.minDough || 0, ruleVal) : 0;
       }
+      // 套用最多退冰上限（0 = 不限制）
+      const maxDough = item.maxDough ?? 0;
+      if (maxDough > 0) dough = Math.min(dough, maxDough);
     }
 
     resultEl.style.color = dough > 0 ? 'var(--success)' : 'var(--text2)';
