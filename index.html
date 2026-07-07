@@ -584,12 +584,17 @@ async function init() {
   if (dcSnap.exists()) {
     const raw = dcSnap.val();
     doughConfig = Array.isArray(raw) ? raw : Object.values(raw);
-    // 確保 rules 是物件格式
-    doughConfig = doughConfig.map(item => ({
-      ...item,
-      rules: item.rules || {},
-      subItems: Array.isArray(item.subItems) ? item.subItems : Object.values(item.subItems || {})
-    }));
+    // 正規化：確保 rules key 為字串，subItems 為陣列
+    doughConfig = doughConfig.map(item => {
+      const rules = {};
+      Object.entries(item.rules || {}).forEach(([k, v]) => { rules[String(k)] = v; });
+      return {
+        ...item,
+        calcMode: item.calcMode || 'combined',
+        rules,
+        subItems: Array.isArray(item.subItems) ? item.subItems : Object.values(item.subItems || {})
+      };
+    });
   } else {
     doughConfig = getDefaultDoughConfig();
     await set(ref(db, 'doughConfig'), doughConfig);
@@ -1076,22 +1081,25 @@ function getDefaultDoughConfig() {
     {
       id: 'french', name: '法國麵糰',
       subItems: ['法國麵包', '蔓越莓法國'],
+      calcMode: 'combined',
       minDough: 0,
-      rules: { 0: 6, 1: 5, 2: 5, 3: 4, 4: 4 },
+      rules: { '0': 6, '1': 5, '2': 5, '3': 4, '4': 4 },
       satFixed: 6, friOff: true, sunOff: true
     },
     {
       id: 'blacksugar', name: '黑糖蔓越莓核桃',
       subItems: ['黑糖蔓越莓核桃'],
+      calcMode: 'combined',
       minDough: 2,
-      rules: { 0: 2, 1: 2, 2: 2, 3: 0, 4: 0 },
+      rules: { '0': 2, '1': 2, '2': 0, '3': 0, '4': 0 },
       satFixed: 2, friOff: true, sunOff: true
     },
     {
       id: 'rye', name: '裸麥麵糰',
       subItems: ['裸麥起士', '裸麥核桃'],
+      calcMode: 'individual',
       minDough: 2,
-      rules: { 0: 2, 1: 2, 2: 1, 3: 0, 4: 0 },
+      rules: { '0': 2, '1': 2, '2': 1, '3': 0, '4': 0 },
       satFixed: 4, friOff: true, sunOff: true
     }
   ];
@@ -1132,6 +1140,11 @@ function renderDoughAdmin() {
       + '<div style="font-size:14px;color:var(--text2);margin-bottom:6px">食材品項（合併計算）</div>'
       + subRows
       + '<button class="btn-add" style="margin-bottom:14px;width:100%;height:36px;font-size:14px" onclick="addDoughSubItem(' + i + ')">＋ 新增品項</button>'
+      + '<div style="font-size:14px;color:var(--text2);margin-bottom:8px">週一～四計算方式</div>'
+      + '<div style="display:flex;gap:8px;margin-bottom:14px">'
+      + '<button onclick="setCalcMode(' + i + ',\'combined\')" style="flex:1;padding:8px;font-size:14px;border-radius:var(--radius);border:1px solid var(--border2);cursor:pointer;background:' + (item.calcMode !== 'individual' ? 'var(--text);color:var(--bg)' : 'var(--bg2);color:var(--text)') + '">合併計算</button>'
+      + '<button onclick="setCalcMode(' + i + ',\'individual\')" style="flex:1;padding:8px;font-size:14px;border-radius:var(--radius);border:1px solid var(--border2);cursor:pointer;background:' + (item.calcMode === 'individual' ? 'var(--text);color:var(--bg)' : 'var(--bg2);color:var(--text)') + '">各自計算後加總</button>'
+      + '</div>'
       + '<div style="font-size:14px;color:var(--text2);margin-bottom:8px">週一～四剩餘對照表</div>'
       + ruleRows
       + '<div class="field-row" style="margin-top:12px">'
@@ -1195,8 +1208,12 @@ window.removeDoughSubItem = async function(i, si) {
   renderDoughAdmin();
   renderDoughTab();
 };
-window.updateDoughRule = function(i, remain, val) {
-  doughConfig[i].rules[remain] = Math.max(0, parseInt(val) || 0);
+window.setCalcMode = async function(i, mode) {
+  doughConfig[i].calcMode = mode;
+  await saveDoughConfig();
+  renderDoughAdmin();
+};
+  doughConfig[i].rules[String(remain)] = Math.max(0, parseInt(val) || 0);
   saveDoughConfig();
 };
 window.updateDoughMin = function(i, val) {
@@ -1269,14 +1286,32 @@ window.calcDough = function() {
     if (isSat) {
       dough = item.satFixed || 0;
     } else {
-      // 週一～四：各 subItem 各自查 rules，加總後取 max(minDough)
-      let total = 0;
-      item.subItems.forEach((s, si) => {
-        const val = parseInt(document.getElementById('d_' + i + '_' + si)?.value) || 0;
-        const capped = Math.min(val, 4);
-        total += (item.rules[capped] ?? 0);
-      });
-      dough = Math.max(item.minDough || 0, total);
+      // 判斷是「合併計算」還是「各自計算後加總」
+      // 若品項只有一個 rule 群組（單一品項或明確合併），用合計總數查一次 rules
+      // 若品項有多個 subItem 且每個各自計算（如裸麥），則各自查後加總
+      // 透過 item.calcMode 區分：'combined'（預設）或 'individual'
+      const mode = item.calcMode || 'combined';
+
+      if (mode === 'individual') {
+        // 各 subItem 各自查 rules，加總後取 max(minDough)
+        let total = 0;
+        item.subItems.forEach((s, si) => {
+          const val = parseInt(document.getElementById('d_' + i + '_' + si)?.value) || 0;
+          const capped = Math.min(val, 4);
+          // key 可能是字串，用 String() 轉換確保找得到
+          total += (item.rules[capped] ?? item.rules[String(capped)] ?? 0);
+        });
+        dough = Math.max(item.minDough || 0, total);
+      } else {
+        // 合併所有 subItem 的數量，查一次 rules
+        let totalRemain = 0;
+        item.subItems.forEach((s, si) => {
+          totalRemain += parseInt(document.getElementById('d_' + i + '_' + si)?.value) || 0;
+        });
+        const capped = Math.min(totalRemain, 4);
+        dough = item.rules[capped] ?? item.rules[String(capped)] ?? 0;
+        dough = Math.max(item.minDough || 0, dough);
+      }
     }
 
     resultEl.style.color = dough > 0 ? 'var(--success)' : 'var(--text2)';
