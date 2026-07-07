@@ -1237,6 +1237,7 @@ function renderDoughTab() {
 }
 
 
+function getTaipeiDayOfWeek() {
   const day = new Date().toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' });
   return { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[day];
 }
