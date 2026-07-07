@@ -1237,6 +1237,8 @@ window.setCalcMode = async function(i, mode) {
   await saveDoughConfig();
   renderDoughAdmin();
 };
+
+window.updateDoughRule = function(i, remain, val) {
   doughConfig[i].rules[String(remain)] = Math.max(0, parseInt(val) || 0);
   saveDoughConfig();
 };
