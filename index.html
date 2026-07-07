@@ -399,6 +399,11 @@
       <div class="error-msg" id="dough-error">請輸入名稱，且不能重複</div>
     </div>
 
+    <div class="card" style="background:var(--bg2)">
+      <div style="font-size:14px;color:var(--text3);margin-bottom:10px">如果設定沒有正確反映，可以重置恢復預設</div>
+      <button class="btn-del" style="width:100%;height:44px;font-size:16px" onclick="resetDoughConfig()">重置為預設麵糰設定</button>
+    </div>
+
     <div id="dough-admin-list"></div>
   </div>
   </div>
@@ -1124,52 +1129,51 @@ function renderDoughAdmin() {
     card.className = 'card';
     card.style.marginBottom = '12px';
 
-    // 標題 + 刪除
     card.innerHTML =
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
-      + '<input class="admin-input" style="flex:1;height:40px;font-size:18px;font-weight:600;margin-right:8px" value="' + item.name + '" oninput="updateDoughName(' + i + ',this.value)">'
+      + '<div style="font-size:18px;font-weight:600;color:var(--text)">' + item.name + '</div>'
       + '<button class="btn-del" onclick="removeDoughItem(' + i + ')">刪除</button>'
       + '</div>'
 
-      // 食材品項
+      + '<div style="font-size:14px;color:var(--text2);margin-bottom:6px">麵糰名稱</div>'
+      + '<input class="admin-input" style="width:100%;height:40px;font-size:17px;margin-bottom:14px" id="dname_' + i + '" value="' + item.name + '">'
+
       + '<div style="font-size:14px;color:var(--text2);margin-bottom:6px">食材品項</div>'
       + item.subItems.map((s, si) =>
           '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-          + '<input class="admin-input" style="flex:1;height:38px;font-size:16px" value="' + s + '" oninput="updateDoughSubItem(' + i + ',' + si + ',this.value)">'
+          + '<input class="admin-input" style="flex:1;height:38px;font-size:16px" id="dsub_' + i + '_' + si + '" value="' + s + '">'
           + (item.subItems.length > 1 ? '<button class="btn-del" onclick="removeDoughSubItem(' + i + ',' + si + ')">移除</button>' : '')
           + '</div>'
         ).join('')
       + '<button class="btn-add" style="margin-bottom:14px;width:100%;height:36px;font-size:14px" onclick="addDoughSubItem(' + i + ')">＋ 新增品項</button>'
 
-      // 計算方式
       + '<div style="font-size:14px;color:var(--text2);margin-bottom:8px">週一～四計算方式</div>'
       + '<div style="display:flex;gap:8px;margin-bottom:14px" id="calcmode_' + i + '"></div>'
 
-      // 對照表
       + '<div style="font-size:14px;color:var(--text2);margin-bottom:8px">週一～四剩餘對照表</div>'
       + [0,1,2,3,4].map(r =>
           '<div class="schedule-day-row">'
           + '<div class="schedule-day-label" style="width:48px;font-size:15px">剩 ' + r + ' 個</div>'
-          + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.rules[String(r)] || 0) + '" style="width:56px" oninput="updateDoughRule(' + i + ',' + r + ',this.value)">'
+          + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" id="drule_' + i + '_' + r + '" value="' + (item.rules[String(r)] ?? 0) + '" style="width:56px">'
           + '<div style="font-size:14px;color:var(--text3);margin-left:6px">顆</div>'
           + '</div>'
         ).join('')
 
-      // 最少退冰
       + '<div class="field-row" style="margin-top:12px">'
       + '<div class="field-label" style="font-size:15px">最少退冰顆數</div>'
-      + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.minDough || 0) + '" oninput="updateDoughMin(' + i + ',this.value)">'
+      + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" id="dmin_' + i + '" value="' + (item.minDough || 0) + '">'
       + '</div>'
 
-      // 週六固定
-      + '<div class="field-row">'
+      + '<div class="field-row" style="margin-bottom:14px">'
       + '<div class="field-label" style="font-size:15px">週六固定退冰</div>'
-      + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.satFixed || 0) + '" oninput="updateDoughSat(' + i + ',this.value)">'
-      + '</div>';
+      + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" id="dsat_' + i + '" value="' + (item.satFixed || 0) + '">'
+      + '</div>'
+
+      + '<button onclick="saveDoughItem(' + i + ')" style="width:100%;padding:14px 0;font-size:18px;font-weight:600;border:none;border-radius:var(--radius-lg);background:#2d7a3a;color:#fff;cursor:pointer;">儲存設定</button>'
+      + '<div id="dsave_note_' + i + '" style="font-size:13px;color:var(--success);text-align:center;margin-top:6px;display:none">✓ 已儲存</div>';
 
     el.appendChild(card);
 
-    // 計算方式按鈕（用 JS 建立避免引號問題）
     const modeDiv = card.querySelector('#calcmode_' + i);
     ['combined', 'individual'].forEach(mode => {
       const btn = document.createElement('button');
@@ -1177,11 +1181,28 @@ function renderDoughAdmin() {
       btn.style.cssText = 'flex:1;padding:8px;font-size:14px;border-radius:var(--radius);border:1px solid var(--border2);cursor:pointer;';
       btn.style.background = item.calcMode === mode ? 'var(--text)' : 'var(--bg2)';
       btn.style.color = item.calcMode === mode ? 'var(--bg)' : 'var(--text)';
-      btn.onclick = () => setCalcMode(i, mode);
+      btn.onclick = () => {
+        doughConfig[i].calcMode = mode;
+        modeDiv.querySelectorAll('button').forEach((b, bi) => {
+          const m = bi === 0 ? 'combined' : 'individual';
+          b.style.background = doughConfig[i].calcMode === m ? 'var(--text)' : 'var(--bg2)';
+          b.style.color = doughConfig[i].calcMode === m ? 'var(--bg)' : 'var(--text)';
+        });
+      };
       modeDiv.appendChild(btn);
     });
   });
 }
+
+window.resetDoughConfig = async function() {
+  if (!confirm('確定要重置為預設設定嗎？所有自訂的退冰邏輯都會清除。')) return;
+  doughConfig = getDefaultDoughConfig();
+  await set(ref(db, 'doughConfig'), doughConfig);
+  renderDoughAdmin();
+  renderDoughTab();
+  calcDough();
+  alert('已重置完成！');
+};
 
 window.addDoughItem = async function() {
   const inp = document.getElementById('new-dough-name');
@@ -1232,23 +1253,39 @@ window.removeDoughSubItem = async function(i, si) {
   renderDoughAdmin();
   renderDoughTab();
 };
-window.setCalcMode = async function(i, mode) {
-  doughConfig[i].calcMode = mode;
-  await saveDoughConfig();
-  renderDoughAdmin();
+window.saveDoughItem = async function(i) {
+  // 讀取所有欄位值
+  const name = document.getElementById('dname_' + i)?.value.trim();
+  if (name) doughConfig[i].name = name;
+
+  // subItems
+  doughConfig[i].subItems = doughConfig[i].subItems.map((s, si) => {
+    const el = document.getElementById('dsub_' + i + '_' + si);
+    return el ? el.value.trim() || s : s;
+  });
+
+  // rules
+  [0,1,2,3,4].forEach(r => {
+    const el = document.getElementById('drule_' + i + '_' + r);
+    if (el) doughConfig[i].rules[String(r)] = Math.max(0, parseInt(el.value) || 0);
+  });
+
+  // minDough, satFixed
+  const minEl = document.getElementById('dmin_' + i);
+  const satEl = document.getElementById('dsat_' + i);
+  if (minEl) doughConfig[i].minDough = Math.max(0, parseInt(minEl.value) || 0);
+  if (satEl) doughConfig[i].satFixed = Math.max(0, parseInt(satEl.value) || 0);
+
+  await set(ref(db, 'doughConfig'), doughConfig.map(item => ({...item})));
+  renderDoughTab();
+  calcDough();
+
+  const note = document.getElementById('dsave_note_' + i);
+  if (note) { note.style.display = 'block'; setTimeout(() => { note.style.display = 'none'; }, 2000); }
 };
 
-window.updateDoughRule = function(i, remain, val) {
-  doughConfig[i].rules[String(remain)] = Math.max(0, parseInt(val) || 0);
-  saveDoughConfig();
-};
-window.updateDoughMin = function(i, val) {
-  doughConfig[i].minDough = Math.max(0, parseInt(val) || 0);
-  saveDoughConfig();
-};
-window.updateDoughSat = function(i, val) {
-  doughConfig[i].satFixed = Math.max(0, parseInt(val) || 0);
-  saveDoughConfig();
+window.setCalcMode = async function(i, mode) {
+  doughConfig[i].calcMode = mode;
 };
 
 function renderDoughTab() {
