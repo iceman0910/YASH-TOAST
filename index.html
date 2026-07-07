@@ -1114,49 +1114,73 @@ async function saveDoughConfig() {
 function renderDoughAdmin() {
   const el = document.getElementById('dough-admin-list');
   if (!el) return;
-  if (doughConfig.length === 0) {
+  if (!doughConfig || doughConfig.length === 0) {
     el.innerHTML = '<div class="no-vendor" style="padding:20px 12px">尚無麵糰品項</div>';
     return;
   }
-  el.innerHTML = doughConfig.map((item, i) => {
-    const ruleRows = [0,1,2,3,4].map(r =>
-      '<div class="schedule-day-row">'
-      + '<div class="schedule-day-label" style="width:48px;font-size:15px">剩 ' + r + ' 個</div>'
-      + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.rules[r] || 0) + '" style="width:56px" oninput="updateDoughRule(' + i + ',' + r + ',this.value)">'
-      + '<div style="font-size:14px;color:var(--text3);margin-left:6px">顆</div>'
-      + '</div>'
-    ).join('');
-    const subRows = item.subItems.map((s, si) =>
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-      + '<input class="admin-input" style="flex:1;height:38px;font-size:16px" value="' + s + '" oninput="updateDoughSubItem(' + i + ',' + si + ',this.value)">'
-      + (item.subItems.length > 1 ? '<button class="btn-del" onclick="removeDoughSubItem(' + i + ',' + si + ')">移除</button>' : '')
-      + '</div>'
-    ).join('');
-    return '<div class="card" style="margin-bottom:12px">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
+  el.innerHTML = '';
+  doughConfig.forEach((item, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginBottom = '12px';
+
+    // 標題 + 刪除
+    card.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'
       + '<input class="admin-input" style="flex:1;height:40px;font-size:18px;font-weight:600;margin-right:8px" value="' + item.name + '" oninput="updateDoughName(' + i + ',this.value)">'
       + '<button class="btn-del" onclick="removeDoughItem(' + i + ')">刪除</button>'
       + '</div>'
-      + '<div style="font-size:14px;color:var(--text2);margin-bottom:6px">食材品項（合併計算）</div>'
-      + subRows
+
+      // 食材品項
+      + '<div style="font-size:14px;color:var(--text2);margin-bottom:6px">食材品項</div>'
+      + item.subItems.map((s, si) =>
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+          + '<input class="admin-input" style="flex:1;height:38px;font-size:16px" value="' + s + '" oninput="updateDoughSubItem(' + i + ',' + si + ',this.value)">'
+          + (item.subItems.length > 1 ? '<button class="btn-del" onclick="removeDoughSubItem(' + i + ',' + si + ')">移除</button>' : '')
+          + '</div>'
+        ).join('')
       + '<button class="btn-add" style="margin-bottom:14px;width:100%;height:36px;font-size:14px" onclick="addDoughSubItem(' + i + ')">＋ 新增品項</button>'
+
+      // 計算方式
       + '<div style="font-size:14px;color:var(--text2);margin-bottom:8px">週一～四計算方式</div>'
-      + '<div style="display:flex;gap:8px;margin-bottom:14px">'
-      + '<button onclick="setCalcMode(' + i + ',\'combined\')" style="flex:1;padding:8px;font-size:14px;border-radius:var(--radius);border:1px solid var(--border2);cursor:pointer;background:' + (item.calcMode !== 'individual' ? 'var(--text);color:var(--bg)' : 'var(--bg2);color:var(--text)') + '">合併計算</button>'
-      + '<button onclick="setCalcMode(' + i + ',\'individual\')" style="flex:1;padding:8px;font-size:14px;border-radius:var(--radius);border:1px solid var(--border2);cursor:pointer;background:' + (item.calcMode === 'individual' ? 'var(--text);color:var(--bg)' : 'var(--bg2);color:var(--text)') + '">各自計算後加總</button>'
-      + '</div>'
+      + '<div style="display:flex;gap:8px;margin-bottom:14px" id="calcmode_' + i + '"></div>'
+
+      // 對照表
       + '<div style="font-size:14px;color:var(--text2);margin-bottom:8px">週一～四剩餘對照表</div>'
-      + ruleRows
+      + [0,1,2,3,4].map(r =>
+          '<div class="schedule-day-row">'
+          + '<div class="schedule-day-label" style="width:48px;font-size:15px">剩 ' + r + ' 個</div>'
+          + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.rules[String(r)] || 0) + '" style="width:56px" oninput="updateDoughRule(' + i + ',' + r + ',this.value)">'
+          + '<div style="font-size:14px;color:var(--text3);margin-left:6px">顆</div>'
+          + '</div>'
+        ).join('')
+
+      // 最少退冰
       + '<div class="field-row" style="margin-top:12px">'
       + '<div class="field-label" style="font-size:15px">最少退冰顆數</div>'
       + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.minDough || 0) + '" oninput="updateDoughMin(' + i + ',this.value)">'
       + '</div>'
+
+      // 週六固定
       + '<div class="field-row">'
       + '<div class="field-label" style="font-size:15px">週六固定退冰</div>'
       + '<input class="schedule-input qty-input" type="number" inputmode="numeric" min="0" value="' + (item.satFixed || 0) + '" oninput="updateDoughSat(' + i + ',this.value)">'
-      + '</div>'
       + '</div>';
-  }).join('');
+
+    el.appendChild(card);
+
+    // 計算方式按鈕（用 JS 建立避免引號問題）
+    const modeDiv = card.querySelector('#calcmode_' + i);
+    ['combined', 'individual'].forEach(mode => {
+      const btn = document.createElement('button');
+      btn.textContent = mode === 'combined' ? '合併計算' : '各自計算後加總';
+      btn.style.cssText = 'flex:1;padding:8px;font-size:14px;border-radius:var(--radius);border:1px solid var(--border2);cursor:pointer;';
+      btn.style.background = item.calcMode === mode ? 'var(--text)' : 'var(--bg2)';
+      btn.style.color = item.calcMode === mode ? 'var(--bg)' : 'var(--text)';
+      btn.onclick = () => setCalcMode(i, mode);
+      modeDiv.appendChild(btn);
+    });
+  });
 }
 
 window.addDoughItem = async function() {
